@@ -868,7 +868,7 @@ function App() {
                                 </Box>
                                 <Button component="label" variant="text" startIcon={<Camera size={20} />}>
                                     Foto
-                                    <input type="file" hidden accept="image/*" capture="environment" onChange={handlePhotoCapture} />
+                                    <input type="file" hidden accept="image/*" onChange={handlePhotoCapture} />
                                 </Button>
                             </Box>
                             {photo && (
