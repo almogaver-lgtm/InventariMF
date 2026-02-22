@@ -426,7 +426,6 @@ function App() {
 
                 await fetch(DEFAULT_SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'no-cors',
                     body: payload
                 });
                 successCount++;

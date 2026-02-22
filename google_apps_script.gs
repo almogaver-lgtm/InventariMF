@@ -210,8 +210,19 @@ function saveIncidentPhoto(base64, article, time, user) {
   
   try {
     const folder = DriveApp.getFolderById(folderId);
-    const contentType = base64.split(",")[0].split(":")[1].split(";")[0];
-    const bytes       = Utilities.base64Decode(base64.split(",")[1]);
+    if (!folder) {
+      Logger.log("Error: No es troba la carpeta amb ID: " + folderId);
+      return;
+    }
+
+    const splitData = base64.split(",");
+    if (splitData.length < 2) {
+      Logger.log("Error: Format base64 de la imatge incorrecte");
+      return;
+    }
+
+    const contentType = splitData[0].split(":")[1].split(";")[0];
+    const bytes       = Utilities.base64Decode(splitData[1]);
     
     // Format: DD-MM-YYYY_HH-mm-ss_Usuari_Article.jpg
     const safeTime = (time || "").replace(/[/]/g, "-").replace(/[:]/g, "-").replace(/\s/g, "_");
@@ -221,9 +232,9 @@ function saveIncidentPhoto(base64, article, time, user) {
     const fileName = `${safeTime}_${safeUser}_${safeArticle}.jpg`;
     const blob = Utilities.newBlob(bytes, contentType, fileName);
     folder.createFile(blob);
-    Logger.log("Foto guardada: " + fileName);
+    Logger.log("✅ Foto guardada amb èxit: " + fileName);
   } catch (e) {
-    Logger.log("Error guardant foto: " + e.toString());
+    Logger.log("❌ Error fatal guardant foto: " + e.toString());
   }
 }
 
