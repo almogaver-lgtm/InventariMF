@@ -103,18 +103,36 @@ function App() {
     const theme = createTheme({
         palette: {
             mode: darkMode ? 'dark' : 'light',
-            primary: { main: '#722f37' },
+            primary: {
+                main: '#722f37',
+                light: '#a65d63',
+                dark: '#450a11',
+                contrastText: '#ffffff',
+            },
             secondary: { main: '#10b981' },
             background: {
-                default: darkMode ? '#121212' : '#f5f5f5',
-                paper: darkMode ? '#1e1e1e' : '#ffffff',
-            }
+                default: darkMode ? '#0f0e0e' : '#f8f9fa',
+                paper: darkMode ? '#1a1818' : '#ffffff',
+            },
+            divider: darkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
         },
         typography: {
             fontFamily: '"Outfit", "Inter", sans-serif',
-            h6: { fontWeight: 800 },
+            h6: { fontWeight: 900 },
         },
-        shape: { borderRadius: 18 }
+        shape: { borderRadius: 20 },
+        components: {
+            MuiButton: {
+                styleOverrides: {
+                    root: { textTransform: 'none', borderRadius: 12 }
+                }
+            },
+            MuiPaper: {
+                styleOverrides: {
+                    root: { backgroundImage: 'none' }
+                }
+            }
+        }
     });
 
     useEffect(() => {
@@ -589,7 +607,7 @@ function App() {
                                         variant="action"
                                         size="small"
                                         onClick={() => setCaixes(prev => parseInt(prev || 0) + 1)}
-                                        sx={{ mt: 1, bgcolor: 'rgba(0,0,0,0.05)', fontWeight: 800, borderRadius: '10px' }}
+                                        sx={{ mt: 1, bgcolor: 'action.hover', fontWeight: 800, borderRadius: '10px' }}
                                     >
                                         +1 Caixa
                                     </Button>
@@ -601,14 +619,14 @@ function App() {
                                         variant="action"
                                         size="small"
                                         onClick={() => setAmpolles(prev => parseInt(prev || 0) + 1)}
-                                        sx={{ mt: 1, bgcolor: 'rgba(0,0,0,0.05)', fontWeight: 800, borderRadius: '10px' }}
+                                        sx={{ mt: 1, bgcolor: 'action.hover', fontWeight: 800, borderRadius: '10px' }}
                                     >
                                         +1 Amp.
                                     </Button>
                                 </Box>
                             </Box>
 
-                            <Box sx={{ p: 2.5, bgcolor: 'rgba(114, 47, 55, 0.05)', borderRadius: '20px', textAlign: 'center' }}>
+                            <Box sx={{ p: 2.5, bgcolor: darkMode ? 'rgba(114, 47, 55, 0.15)' : 'rgba(114, 47, 55, 0.05)', borderRadius: '20px', textAlign: 'center' }}>
                                 <Typography variant="h3" sx={{ fontWeight: 900, color: 'primary.main' }}>
                                     {(parseInt(caixes || 0) * 6) + parseInt(ampolles || 0)} <small style={{ fontSize: '1rem' }}>amp.</small>
                                 </Typography>
