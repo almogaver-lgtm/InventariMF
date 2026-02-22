@@ -61,6 +61,37 @@ const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyTzEmOJ9MTn
 
 const CHART_COLORS = ['#722f37', '#b91c1c', '#dc2626', '#ef4444', '#f87171', '#fb923c', '#fbbf24', '#facc15', '#a3e635', '#4ade80', '#2dd4bf', '#22d3ee', '#38bdf8', '#60a5fa', '#818cf8', '#a78bfa', '#c084fc', '#e879f9', '#f472b6', '#fb7185'];
 
+const robustParseDate = (dateStr) => {
+    if (!dateStr) return new Date(0);
+    try {
+        // Normalitzem: treiem comes, punts i passem a minúscules
+        let clean = dateStr.replace(/,/g, '').replace(/\./g, '').toLowerCase();
+
+        const isPM = clean.includes('p m') || clean.includes('pm') || clean.includes('p m');
+        const isAM = clean.includes('a m') || clean.includes('am') || clean.includes('a m');
+
+        clean = clean.replace(/p\s?m/g, '').replace(/a\s?m/g, '').trim();
+
+        // Busquem números: DD MM YYYY HH MM SS
+        const parts = clean.split(/[^0-9]+/).filter(x => x.length > 0);
+        if (parts.length < 3) return new Date(dateStr);
+
+        const day = parseInt(parts[0]);
+        const month = parseInt(parts[1]) - 1;
+        const year = parseInt(parts[2]);
+        let hours = parts.length > 3 ? parseInt(parts[3]) : 0;
+        const minutes = parts.length > 4 ? parseInt(parts[4]) : 0;
+        const seconds = parts.length > 5 ? parseInt(parts[5]) : 0;
+
+        if (isPM && hours < 12) hours += 12;
+        if (isAM && hours === 12) hours = 0;
+
+        return new Date(year, month, day, hours, minutes, seconds);
+    } catch (e) {
+        return new Date(dateStr);
+    }
+};
+
 const GENERATE_YEARS = () => {
     const currentYear = new Date().getFullYear();
     const years = [];
@@ -447,8 +478,30 @@ function App() {
                             }}>
                                 <History size={22} />
                             </IconButton>
-                            <IconButton color="inherit" onClick={() => setHistoryOpen(true)}>
-                                <Save size={20} />
+                            <IconButton
+                                color="inherit"
+                                onClick={() => setHistoryOpen(true)}
+                                sx={{
+                                    color: pendingCount > 0 ? '#ffea00' : 'inherit',
+                                    animation: pendingCount > 0 ? 'pulse 2s infinite' : 'none',
+                                    transition: 'all 0.3s ease'
+                                }}
+                            >
+                                <Box sx={{ position: 'relative', display: 'flex' }}>
+                                    <Save size={24} />
+                                    {pendingCount > 0 && (
+                                        <Box sx={{
+                                            position: 'absolute', top: -6, right: -6,
+                                            bgcolor: '#ff4444', color: 'white',
+                                            borderRadius: '50%', minWidth: 16, height: 16,
+                                            fontSize: '0.65rem', display: 'flex',
+                                            alignItems: 'center', justifyContent: 'center',
+                                            fontWeight: 900, border: '2px solid #722f37'
+                                        }}>
+                                            {pendingCount}
+                                        </Box>
+                                    )}
+                                </Box>
                             </IconButton>
                             <IconButton color="inherit" onClick={() => {
                                 const newVal = !darkMode;
@@ -457,24 +510,6 @@ function App() {
                             }}>
                                 {darkMode ? <Sun size={22} /> : <Moon size={22} />}
                             </IconButton>
-                            {pendingCount > 0 && (
-                                <Button
-                                    variant="contained"
-                                    onClick={handleSync}
-                                    sx={{
-                                        minWidth: 40,
-                                        height: 40,
-                                        borderRadius: '12px',
-                                        bgcolor: '#fff',
-                                        color: '#722f37',
-                                        ml: 1,
-                                        fontWeight: 900,
-                                        '&:hover': { bgcolor: '#f0f0f0' }
-                                    }}
-                                >
-                                    {pendingCount}
-                                </Button>
-                            )}
                         </Box>
                     </Toolbar>
                 </AppBar>
@@ -532,20 +567,7 @@ function App() {
                             <Box sx={{ mt: 6, pt: 4, borderTop: '1px solid', borderColor: 'divider' }}>
                                 <Grid container spacing={3}>
                                     <Grid item xs={12} sm={6}>
-                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                                            <Typography variant="caption" sx={{ fontWeight: 900, color: 'text.secondary' }}>RESPONSABLE</Typography>
-                                            <Typography
-                                                variant="caption"
-                                                sx={{ fontWeight: 900, color: 'primary.main', cursor: 'pointer' }}
-                                                onClick={() => {
-                                                    const name = window.prompt("Nom responsable:");
-                                                    if (name) {
-                                                        setUsuaris([...usuaris, name]);
-                                                        localStorage.setItem('inventory_custom_users', JSON.stringify([...usuaris, name]));
-                                                    }
-                                                }}
-                                            >+ NOU</Typography>
-                                        </Box>
+                                        <Typography variant="caption" sx={{ fontWeight: 900, color: 'text.secondary', display: 'block', mb: 1 }}>RESPONSABLE</Typography>
                                         <TextField
                                             select
                                             fullWidth
@@ -651,8 +673,9 @@ function App() {
                                         label="Caixes (x6)"
                                         type="number"
                                         fullWidth
-                                        value={caixes === 0 ? '' : caixes}
-                                        onChange={(e) => setCaixes(e.target.value === '' ? 0 : parseInt(e.target.value))}
+                                        value={caixes}
+                                        onChange={(e) => setCaixes(parseInt(e.target.value || 0))}
+                                        onFocus={(e) => e.target.select()}
                                         InputLabelProps={{ shrink: true }}
                                     />
                                     <Button
@@ -670,8 +693,9 @@ function App() {
                                         label="Ampolles"
                                         type="number"
                                         fullWidth
-                                        value={ampolles === 0 ? '' : ampolles}
-                                        onChange={(e) => setAmpolles(e.target.value === '' ? 0 : parseInt(e.target.value))}
+                                        value={ampolles}
+                                        onChange={(e) => setAmpolles(parseInt(e.target.value || 0))}
+                                        onFocus={(e) => e.target.select()}
                                         InputLabelProps={{ shrink: true }}
                                     />
                                     <Button
@@ -762,7 +786,7 @@ function App() {
                                 {globalLogs
                                     .filter(log => {
                                         if (historyRange === 'all') return true;
-                                        const logDate = new Date(log.timestamp);
+                                        const logDate = robustParseDate(log.timestamp);
                                         const now = new Date();
                                         const diff = (now - logDate) / (1000 * 60 * 60);
                                         if (historyRange === '24h') return diff <= 24;
@@ -832,6 +856,11 @@ function App() {
             </Box>
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;900&display=swap');
+                @keyframes pulse {
+                    0% { transform: scale(1); }
+                    50% { transform: scale(1.1); }
+                    100% { transform: scale(1); }
+                }
             `}</style>
         </ThemeProvider>
     );
