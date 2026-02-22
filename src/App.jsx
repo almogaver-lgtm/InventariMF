@@ -487,12 +487,22 @@ function App() {
                                             sx={{
                                                 height: '90px',
                                                 borderWidth: '2px',
-                                                borderColor: darkMode ? 'rgba(255,255,255,0.1)' : '#f0f0f0',
+                                                borderRadius: '16px',
+                                                borderColor: darkMode ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                                                bgcolor: darkMode ? 'rgba(255,255,255,0.03)' : 'transparent',
                                                 flexDirection: 'column',
-                                                '&:hover': { borderWidth: '2px', borderColor: 'primary.main' }
+                                                color: 'text.primary',
+                                                '&:hover': {
+                                                    borderWidth: '2px',
+                                                    borderColor: 'primary.main',
+                                                    bgcolor: darkMode ? 'rgba(114, 47, 55, 0.1)' : 'rgba(114, 47, 55, 0.04)',
+                                                },
+                                                transition: 'all 0.2s ease'
                                             }}
                                         >
-                                            <Typography variant="body2" sx={{ fontWeight: 800 }}>{article}</Typography>
+                                            <Typography variant="body2" sx={{ fontWeight: 900, textAlign: 'center', lineHeight: 1.2 }}>
+                                                {article}
+                                            </Typography>
                                         </Button>
                                     </Grid>
                                 ))}
