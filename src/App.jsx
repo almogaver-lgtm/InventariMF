@@ -63,41 +63,54 @@ const CHART_COLORS = ['#722f37', '#b91c1c', '#dc2626', '#ef4444', '#f87171', '#f
 
 const robustParseDate = (dateStr) => {
     if (!dateStr) return new Date(0);
-    try {
-        // Netegem el string de formats estranys de Google Sheets
-        let clean = dateStr.replace(/,/g, '').replace(/\./g, '').toLowerCase();
+    // Si ja és un objecte Date, el retornem
+    if (dateStr instanceof Date) return dateStr;
 
-        // El format esperat és DD/MM/YYYY HH:MM:SS
-        // Busquem tots els blocs de números
+    try {
+        // Si és un string que sembla una data ISO
+        if (typeof dateStr === 'string' && dateStr.includes('T') && !isNaN(Date.parse(dateStr))) {
+            return new Date(dateStr);
+        }
+
+        // Netegem el string
+        let clean = dateStr.toString().replace(/,/g, '').replace(/\./g, '').toLowerCase();
+
+        // Busquem números: DD MM YYYY HH MM SS
         const parts = clean.split(/[^0-9]+/).filter(x => x.length > 0);
 
         if (parts.length >= 3) {
             const day = parseInt(parts[0]);
             const month = parseInt(parts[1]) - 1;
-            const year = parseInt(parts[2]);
+            const year = parts[2].length === 2 ? 2000 + parseInt(parts[2]) : parseInt(parts[2]);
 
-            // Si tenim hores...
             let hours = parts.length > 3 ? parseInt(parts[3]) : 0;
             const minutes = parts.length > 4 ? parseInt(parts[4]) : 0;
             const seconds = parts.length > 5 ? parseInt(parts[5]) : 0;
 
-            // Maneig de PM/AM si encara existís en dades velles
+            // PM/AM logic fallback
             if ((clean.includes('p m') || clean.includes('pm')) && hours < 12) hours += 12;
             if ((clean.includes('a m') || clean.includes('am')) && hours === 12) hours = 0;
 
             const d = new Date(year, month, day, hours, minutes, seconds);
             if (!isNaN(d.getTime())) return d;
         }
-        return new Date(dateStr);
+
+        const fallback = new Date(dateStr);
+        return isNaN(fallback.getTime()) ? new Date(0) : fallback;
     } catch (e) {
-        return new Date(dateStr);
+        return new Date(0);
     }
 };
 
 const formatCurrentDate = () => {
     const now = new Date();
-    const pad = (n) => n.toString().padStart(2, '0');
-    return `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    const d = now.getDate().toString().padStart(2, '0');
+    const m = (now.getMonth() + 1).toString().padStart(2, '0');
+    const y = now.getFullYear();
+    const h = now.getHours().toString().padStart(2, '0');
+    const min = now.getMinutes().toString().padStart(2, '0');
+    const s = now.getSeconds().toString().padStart(2, '0');
+    return `${d}/${m}/${y} ${h}:${min}:${s}`;
 };
 
 const GENERATE_YEARS = () => {
@@ -793,8 +806,9 @@ function App() {
                             <List sx={{ pt: 0 }}>
                                 {globalLogs
                                     .filter(log => {
+                                        const timestamp = log.TIMESTAMP || log.timestamp;
                                         if (historyRange === 'all') return true;
-                                        const logDate = robustParseDate(log.timestamp);
+                                        const logDate = robustParseDate(timestamp);
                                         const now = new Date();
                                         const diff = (now - logDate) / (1000 * 60 * 60);
                                         if (historyRange === '24h') return diff <= 24;
@@ -803,25 +817,38 @@ function App() {
                                         if (historyRange === '30d') return diff <= 720;
                                         return true;
                                     })
-                                    .map((log, idx) => (
-                                        <Card key={idx} variant="outlined" sx={{ mb: 2, borderRadius: '16px', border: '1px solid', borderColor: 'divider' }}>
-                                            <CardContent sx={{ p: '14px !important' }}>
-                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                                                    <Typography variant="body2" sx={{ fontWeight: 900, color: 'primary.main' }}>{log.article} ({log.year})</Typography>
-                                                    <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary' }}>{log.totalBottles} uts.</Typography>
-                                                </Box>
-                                                <Typography variant="caption" sx={{ fontWeight: 700, opacity: 0.7, display: 'block', mb: 1 }}>
-                                                    {log.timestamp}
-                                                </Typography>
-                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <Typography variant="caption" sx={{ fontWeight: 800 }}>{log.user} • {log.location}</Typography>
-                                                    {log.incidencia && (
-                                                        <Box sx={{ bgcolor: 'error.main', color: 'white', px: 1, py: 0.2, borderRadius: '4px', fontSize: '0.6rem', fontWeight: 900 }}>INCIDÈNCIA</Box>
-                                                    )}
-                                                </Box>
-                                            </CardContent>
-                                        </Card>
-                                    ))}
+                                    .map((log, idx) => {
+                                        // Mapeig flexible per si les claus venen en majúscules o minúscules
+                                        const L = {
+                                            article: log.ARTICLE || log.article || 'Desconegut',
+                                            year: log.ANYADA || log.year || log.anyada || '',
+                                            total: log['TOTAL AMPOLLES'] || log.totalBottles || log.total || 0,
+                                            user: log.USUARI || log.user || log.usuari || '?',
+                                            location: log.UBICACIÓ || log.location || log.ubicacio || '?',
+                                            timestamp: log.TIMESTAMP || log.timestamp || '',
+                                            incidencia: log.INCIDÈNCIA || log.incidencia || false
+                                        };
+
+                                        return (
+                                            <Card key={idx} variant="outlined" sx={{ mb: 2, borderRadius: '16px', border: '1px solid', borderColor: 'divider' }}>
+                                                <CardContent sx={{ p: '14px !important' }}>
+                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                                                        <Typography variant="body2" sx={{ fontWeight: 900, color: 'primary.main' }}>{L.article} ({L.year})</Typography>
+                                                        <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary' }}>{L.total} uts.</Typography>
+                                                    </Box>
+                                                    <Typography variant="caption" sx={{ fontWeight: 700, opacity: 0.7, display: 'block', mb: 1 }}>
+                                                        {L.timestamp}
+                                                    </Typography>
+                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <Typography variant="caption" sx={{ fontWeight: 800 }}>{L.user} • {L.location}</Typography>
+                                                        {L.incidencia && (
+                                                            <Box sx={{ bgcolor: 'error.main', color: 'white', px: 1, py: 0.2, borderRadius: '4px', fontSize: '0.6rem', fontWeight: 900 }}>INCIDÈNCIA</Box>
+                                                        )}
+                                                    </Box>
+                                                </CardContent>
+                                            </Card>
+                                        );
+                                    })}
                             </List>
                         )}
                     </DialogContent>
