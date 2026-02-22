@@ -61,6 +61,15 @@ const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyTzEmOJ9MTn
 
 const CHART_COLORS = ['#722f37', '#b91c1c', '#dc2626', '#ef4444', '#f87171', '#fb923c', '#fbbf24', '#facc15', '#a3e635', '#4ade80', '#2dd4bf', '#22d3ee', '#38bdf8', '#60a5fa', '#818cf8', '#a78bfa', '#c084fc', '#e879f9', '#f472b6', '#fb7185'];
 
+const GENERATE_YEARS = () => {
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    for (let y = 2015; y <= currentYear + 1; y++) {
+        years.push(y.toString());
+    }
+    return years.reverse();
+};
+
 function App() {
     const [darkMode, setDarkMode] = useState(localStorage.getItem('inventory_dark_mode') === 'true');
     const [view, setView] = useState('grid'); // 'grid' or 'dash'
@@ -555,17 +564,51 @@ function App() {
                     )}
                 </Container>
 
-                <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="xs" PaperProps={{ sx: { borderRadius: '24px' } }}>
-                    <DialogTitle sx={{ fontWeight: 800 }}>{selectedArticle}</DialogTitle>
-                    <DialogContent sx={{ pt: 2 }}>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                            <TextField label="Anyada / Data" fullWidth value={anyada} onChange={(e) => setAnyada(e.target.value)} />
+                <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="xs" PaperProps={{ sx: { borderRadius: '28px' } }}>
+                    <DialogTitle sx={{ fontWeight: 900, pt: 3, px: 3 }}>{selectedArticle}</DialogTitle>
+                    <DialogContent sx={{ px: 3, pb: 2 }}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
+                            <TextField
+                                label="Anyada / Data"
+                                select
+                                fullWidth
+                                value={anyada}
+                                onChange={(e) => setAnyada(e.target.value)}
+                                SelectProps={{ native: true }}
+                                variant="outlined"
+                                InputLabelProps={{ shrink: true }}
+                            >
+                                {GENERATE_YEARS().map(y => <option key={y} value={y}>{y}</option>)}
+                            </TextField>
+
                             <Box sx={{ display: 'flex', gap: 2 }}>
-                                <TextField label="Caixes (x6)" type="number" fullWidth value={caixes} onChange={(e) => setCaixes(e.target.value)} />
-                                <TextField label="Ampolles" type="number" fullWidth value={ampolles} onChange={(e) => setAmpolles(e.target.value)} />
+                                <Box sx={{ flex: 1 }}>
+                                    <TextField label="Caixes (x6)" type="number" fullWidth value={caixes} onChange={(e) => setCaixes(e.target.value)} InputLabelProps={{ shrink: true }} />
+                                    <Button
+                                        fullWidth
+                                        variant="action"
+                                        size="small"
+                                        onClick={() => setCaixes(prev => parseInt(prev || 0) + 1)}
+                                        sx={{ mt: 1, bgcolor: 'rgba(0,0,0,0.05)', fontWeight: 800, borderRadius: '10px' }}
+                                    >
+                                        +1 Caixa
+                                    </Button>
+                                </Box>
+                                <Box sx={{ flex: 1 }}>
+                                    <TextField label="Ampolles" type="number" fullWidth value={ampolles} onChange={(e) => setAmpolles(e.target.value)} InputLabelProps={{ shrink: true }} />
+                                    <Button
+                                        fullWidth
+                                        variant="action"
+                                        size="small"
+                                        onClick={() => setAmpolles(prev => parseInt(prev || 0) + 1)}
+                                        sx={{ mt: 1, bgcolor: 'rgba(0,0,0,0.05)', fontWeight: 800, borderRadius: '10px' }}
+                                    >
+                                        +1 Amp.
+                                    </Button>
+                                </Box>
                             </Box>
 
-                            <Box sx={{ p: 3, bgcolor: 'rgba(114, 47, 55, 0.05)', borderRadius: '20px', textAlign: 'center' }}>
+                            <Box sx={{ p: 2.5, bgcolor: 'rgba(114, 47, 55, 0.05)', borderRadius: '20px', textAlign: 'center' }}>
                                 <Typography variant="h3" sx={{ fontWeight: 900, color: 'primary.main' }}>
                                     {(parseInt(caixes || 0) * 6) + parseInt(ampolles || 0)} <small style={{ fontSize: '1rem' }}>amp.</small>
                                 </Typography>
@@ -578,7 +621,7 @@ function App() {
                                 </Box>
                                 <Button component="label" variant="text" startIcon={<Camera size={20} />}>
                                     Foto
-                                    <input type="file" hidden accept="image/*" onChange={handlePhotoCapture} />
+                                    <input type="file" hidden accept="image/*" capture="environment" onChange={handlePhotoCapture} />
                                 </Button>
                             </Box>
                             {photo && (
