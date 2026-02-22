@@ -1,3 +1,17 @@
+/*
+ * Control d'Inventari per a Cellers (INVENTARI MF)
+ * Autor: David Roca Puig 
+ * Contacte: almogaver@gmail.com
+ *
+ * Aplicació desenvolupada per al control d'inventari i estocs, en especial del Celler Martin Faixó,
+ * seguint els requeriments per a la gestió logística i de visitants.
+ *
+ * Llicència: Creative Commons BY-NC-SA 3.0 ES
+ * - BY: Cal citar l'autoria
+ * - NC: No es permet l'ús comercial
+ * - SA: Les obres derivades s'han de compartir amb la mateixa llicència
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import {
     ThemeProvider,
