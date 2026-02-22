@@ -92,66 +92,85 @@ function doPost(e) {
     const data = JSON.parse(e.postData.contents);
     const ss   = SpreadsheetApp.getActiveSpreadsheet();
 
-    if (data.action === "addUser")    return addConfig(ss, 1, data.name);
-    if (data.action === "addArticle") return addConfig(ss, 2, data.name);
+    if (data.action === "addUser")    return jsonResponse(addConfig(ss, 1, data.name));
+    if (data.action === "addArticle") return jsonResponse(addConfig(ss, 2, data.name));
 
     // ──────────────────────────────────────────────────────────────
-    // EDITAR REGISTRE EXISTENT (per timestamp original)
+    // EDITAR REGISTRE EXISTENT
     // ──────────────────────────────────────────────────────────────
     if (data.action === "editEntry") {
-      const sheet = ss.getSheetByName("LOG GLOBAL");
-      if (!sheet) return jsonResponse({ status: "error", message: "Full LOG GLOBAL no trobat" });
+      try {
+        const sheet = ss.getSheetByName("LOG GLOBAL");
+        if (!sheet) return jsonResponse({ status: "error", message: "Full LOG GLOBAL no trobat" });
 
-      const lastRow = sheet.getLastRow();
-      if (lastRow < 2) return jsonResponse({ status: "error", message: "Cap registre trobat" });
+        const lastRow = sheet.getLastRow();
+        if (lastRow < 2) return jsonResponse({ status: "error", message: "Cap registre trobat" });
 
-      // Busquem la fila per timestamp original (columna A)
-      const tsCol = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
-      let foundRow = -1;
-      for (let i = 0; i < tsCol.length; i++) {
-        const cellVal = tsCol[i][0] instanceof Date ? formatDate(tsCol[i][0]) : tsCol[i][0].toString();
-        if (cellVal === data.originalTimestamp) {
-          foundRow = i + 2; // +2 perquè comecem a fila 2 i l'índex és 0-based
-          break;
+        const tsCol = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+        let foundRow = -1;
+        for (let i = 0; i < tsCol.length; i++) {
+          const cellVal = tsCol[i][0] instanceof Date ? formatDate(tsCol[i][0]) : tsCol[i][0].toString();
+          if (cellVal === data.originalTimestamp) {
+            foundRow = i + 2;
+            break;
+          }
         }
+
+        if (foundRow === -1) {
+          return jsonResponse({ status: "error", message: "Registre no trobat amb timestamp: " + data.originalTimestamp });
+        }
+
+        const newTotal = (Number(data.boxes) || 0) * 6 + (Number(data.bottles) || 0);
+        sheet.getRange(foundRow, 2).setValue(data.user     || "");
+        sheet.getRange(foundRow, 3).setValue(data.article  || "");
+        sheet.getRange(foundRow, 4).setValue(data.year     || "");
+        sheet.getRange(foundRow, 5).setValue(data.location || "");
+        sheet.getRange(foundRow, 6).setValue(Number(data.bottles) || 0);
+        sheet.getRange(foundRow, 7).setValue(Number(data.boxes)   || 0);
+        sheet.getRange(foundRow, 8).setValue(newTotal);
+        sheet.getRange(foundRow, 10).setValue(data.incidencia ? "true" : "false");
+
+        return jsonResponse({ status: "success", updatedRow: foundRow, newTotal });
+      } catch (err) {
+        return jsonResponse({ status: "error", message: "Error editant: " + err.toString() });
       }
-
-      if (foundRow === -1) {
-        return jsonResponse({ status: "error", message: "Registre no trobat amb timestamp: " + data.originalTimestamp });
-      }
-
-      const newTotal = (Number(data.boxes) || 0) * 6 + (Number(data.bottles) || 0);
-
-      // Actualitzem les columnes: B=USUARI, C=ARTICLE, D=ANYADA, E=UBICACIÓ, F=AMPOLLES, G=CAIXES, H=TOTAL
-      sheet.getRange(foundRow, 2).setValue(data.user     || "");
-      sheet.getRange(foundRow, 3).setValue(data.article  || "");
-      sheet.getRange(foundRow, 4).setValue(data.year     || "");
-      sheet.getRange(foundRow, 5).setValue(data.location || "");
-      sheet.getRange(foundRow, 6).setValue(Number(data.bottles) || 0);
-      sheet.getRange(foundRow, 7).setValue(Number(data.boxes)   || 0);
-      sheet.getRange(foundRow, 8).setValue(newTotal);
-      sheet.getRange(foundRow, 10).setValue(data.incidencia ? "true" : "false");
-
-      Logger.log("Registre editat a fila " + foundRow);
-      return jsonResponse({ status: "success", updatedRow: foundRow, newTotal });
     }
 
-    // GESTIÓ DE FOTOS D'INCIDÈNCIES
+    // ──────────────────────────────────────────────────────────────
+    // REGISTRE NORMAL + FOTO
+    // ──────────────────────────────────────────────────────────────
+    
+    // 1. Intentem guardar la foto (si n'hi ha)
+    let photoStatus = "no photo";
     if (data.image) {
-      saveIncidentPhoto(data.image, data.article, data.timestamp, data.user);
+      try {
+        saveIncidentPhoto(data.image, data.article, data.timestamp, data.user);
+        photoStatus = "saved";
+      } catch (err) {
+        photoStatus = "error: " + err.toString();
+        Logger.log("Error saveIncidentPhoto: " + err.toString());
+      }
     }
 
-    // REGISTRE NORMAL
-    registerDataToSheet(ss, "LOG GLOBAL", data, false);
+    // 2. Registrem les dades al full de càlcul
+    try {
+      const globalStatus = registerDataToSheet(ss, "LOG GLOBAL", data, false);
+      const articleSheetName = data.article.toUpperCase().trim();
+      const unitStatus = registerDataToSheet(ss, articleSheetName, data, true);
 
-    const articleSheetName = data.article.toUpperCase().trim();
-    registerDataToSheet(ss, articleSheetName, data, true);
-
-    return jsonResponse({ status: "success" });
+      return jsonResponse({ 
+        status: "success", 
+        photo: photoStatus,
+        debug: { global: globalStatus, article: unitStatus }
+      });
+    } catch (err) {
+      Logger.log("Error registerDataToSheet: " + err.toString());
+      return jsonResponse({ status: "error", message: "Error registrant dades: " + err.toString() });
+    }
 
   } catch (error) {
-    Logger.log("doPost error: " + error.toString());
-    return jsonResponse({ status: "error", message: error.toString() });
+    Logger.log("doPost error fatal: " + error.toString());
+    return jsonResponse({ status: "error", message: "Error fatal: " + error.toString() });
   }
 }
 
@@ -203,6 +222,7 @@ function registerDataToSheet(ss, sheetName, data, updateTotals) {
       m3.setValue((Number(m3.getValue()) || 0) + total);
     }
   }
+  return "ok";
 }
 
 function saveIncidentPhoto(base64, article, time, user) {
