@@ -162,6 +162,7 @@ function App() {
     const [editingLog, setEditingLog] = useState(null);
     const [editForm, setEditForm] = useState({});
     const [savingEdit, setSavingEdit] = useState(false);
+    const [pressingLogIdx, setPressingLogIdx] = useState(null);
     const longPressTimer = useRef(null);
 
     const theme = createTheme({
@@ -219,9 +220,11 @@ function App() {
         };
     }, []);
 
-    const useLongPress = (log) => ({
+    const useLongPress = (log, idx) => ({
         onMouseDown: () => {
+            setPressingLogIdx(idx);
             longPressTimer.current = setTimeout(() => {
+                setPressingLogIdx(null);
                 setEditingLog(log);
                 setEditForm({
                     article: log.article,
@@ -234,12 +237,14 @@ function App() {
                     user: log.user
                 });
                 setEditLogOpen(true);
-            }, 700);
+            }, 1000);
         },
-        onMouseUp: () => clearTimeout(longPressTimer.current),
-        onMouseLeave: () => clearTimeout(longPressTimer.current),
+        onMouseUp: () => { clearTimeout(longPressTimer.current); setPressingLogIdx(null); },
+        onMouseLeave: () => { clearTimeout(longPressTimer.current); setPressingLogIdx(null); },
         onTouchStart: () => {
+            setPressingLogIdx(idx);
             longPressTimer.current = setTimeout(() => {
+                setPressingLogIdx(null);
                 setEditingLog(log);
                 setEditForm({
                     article: log.article,
@@ -252,9 +257,9 @@ function App() {
                     user: log.user
                 });
                 setEditLogOpen(true);
-            }, 700);
+            }, 1000);
         },
-        onTouchEnd: () => clearTimeout(longPressTimer.current),
+        onTouchEnd: () => { clearTimeout(longPressTimer.current); setPressingLogIdx(null); },
         onContextMenu: (e) => e.preventDefault(),
     });
 
@@ -790,11 +795,12 @@ function App() {
                                 <Box sx={{ flex: 1 }}>
                                     <TextField
                                         label="Caixes (x6)"
-                                        type="number"
+                                        type="text"
+                                        inputMode="numeric"
                                         fullWidth
-                                        value={caixes}
-                                        onChange={(e) => setCaixes(parseInt(e.target.value || 0))}
-                                        onFocus={(e) => e.target.select()}
+                                        value={caixes === 0 ? '' : caixes}
+                                        placeholder="0"
+                                        onChange={(e) => setCaixes(parseInt(e.target.value) || 0)}
                                         InputLabelProps={{ shrink: true }}
                                     />
                                     <Button
@@ -810,11 +816,12 @@ function App() {
                                 <Box sx={{ flex: 1 }}>
                                     <TextField
                                         label="Ampolles"
-                                        type="number"
+                                        type="text"
+                                        inputMode="numeric"
                                         fullWidth
-                                        value={ampolles}
-                                        onChange={(e) => setAmpolles(parseInt(e.target.value || 0))}
-                                        onFocus={(e) => e.target.select()}
+                                        value={ampolles === 0 ? '' : ampolles}
+                                        placeholder="0"
+                                        onChange={(e) => setAmpolles(parseInt(e.target.value) || 0)}
                                         InputLabelProps={{ shrink: true }}
                                     />
                                     <Button
@@ -931,14 +938,19 @@ function App() {
                                             <Card
                                                 key={idx}
                                                 variant="outlined"
-                                                {...useLongPress(log)}
+                                                {...useLongPress(log, idx)}
                                                 sx={{
                                                     mb: 2, borderRadius: '16px',
-                                                    border: '1px solid', borderColor: 'divider',
+                                                    border: '1px solid',
+                                                    borderColor: pressingLogIdx === idx ? 'primary.main' : 'divider',
                                                     cursor: 'pointer',
                                                     userSelect: 'none',
-                                                    transition: 'all 0.15s ease',
-                                                    '&:active': { transform: 'scale(0.98)', opacity: 0.85 }
+                                                    WebkitTapHighlightColor: 'transparent',
+                                                    transition: 'box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease',
+                                                    transform: pressingLogIdx === idx ? 'scale(0.975)' : 'scale(1)',
+                                                    boxShadow: pressingLogIdx === idx
+                                                        ? '0 0 0 3px rgba(114,47,55,0.25), 0 4px 20px rgba(114,47,55,0.15)'
+                                                        : 'none',
                                                 }}
                                             >
                                                 <CardContent sx={{ p: '14px !important' }}>
@@ -946,7 +958,7 @@ function App() {
                                                         <Typography variant="body2" sx={{ fontWeight: 900, color: 'primary.main' }}>{L.article} ({L.year})</Typography>
                                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                                             <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary' }}>{L.total} uts.</Typography>
-                                                            <Edit2 size={12} style={{ opacity: 0.3 }} />
+                                                            <Edit2 size={12} style={{ opacity: pressingLogIdx === idx ? 0.8 : 0.25, transition: 'opacity 0.2s' }} />
                                                         </Box>
                                                     </Box>
                                                     <Typography variant="caption" sx={{ fontWeight: 700, opacity: 0.7, display: 'block', mb: 1 }}>
