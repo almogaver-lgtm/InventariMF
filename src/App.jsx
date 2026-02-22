@@ -224,6 +224,7 @@ function App() {
         onMouseDown: () => {
             setPressingLogIdx(idx);
             longPressTimer.current = setTimeout(() => {
+                if (navigator.vibrate) navigator.vibrate(50);
                 setPressingLogIdx(null);
                 setEditingLog(log);
                 setEditForm({
@@ -244,6 +245,7 @@ function App() {
         onTouchStart: () => {
             setPressingLogIdx(idx);
             longPressTimer.current = setTimeout(() => {
+                if (navigator.vibrate) navigator.vibrate(50);
                 setPressingLogIdx(null);
                 setEditingLog(log);
                 setEditForm({
@@ -588,7 +590,7 @@ function App() {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                             <Wine size={28} />
                             <Typography variant="h6" sx={{ fontSize: { xs: '1.1rem', sm: '1.4rem' } }}>
-                                {view === 'grid' ? 'InventariVi' : 'Estoc Global'}
+                                {view === 'grid' ? 'Inventari Vi' : 'Estoc Global'}
                             </Typography>
                         </Box>
 
@@ -796,11 +798,11 @@ function App() {
                                     <TextField
                                         label="Caixes (x6)"
                                         type="text"
-                                        inputMode="numeric"
                                         fullWidth
                                         value={caixes === 0 ? '' : caixes}
                                         placeholder="0"
                                         onChange={(e) => setCaixes(parseInt(e.target.value) || 0)}
+                                        inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
                                         InputLabelProps={{ shrink: true }}
                                     />
                                     <Button
@@ -817,11 +819,11 @@ function App() {
                                     <TextField
                                         label="Ampolles"
                                         type="text"
-                                        inputMode="numeric"
                                         fullWidth
                                         value={ampolles === 0 ? '' : ampolles}
                                         placeholder="0"
                                         onChange={(e) => setAmpolles(parseInt(e.target.value) || 0)}
+                                        inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
                                         InputLabelProps={{ shrink: true }}
                                     />
                                     <Button
@@ -1023,20 +1025,22 @@ function App() {
                             <Box sx={{ display: 'flex', gap: 2 }}>
                                 <TextField
                                     label="Caixes (x6)"
-                                    type="number"
+                                    type="text"
                                     fullWidth
-                                    value={editForm.boxes ?? 0}
+                                    value={editForm.boxes === 0 ? '' : (editForm.boxes ?? '')}
+                                    placeholder="0"
                                     onChange={e => setEditForm(f => ({ ...f, boxes: parseInt(e.target.value) || 0 }))}
-                                    onFocus={e => e.target.select()}
+                                    inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
                                     InputLabelProps={{ shrink: true }}
                                 />
                                 <TextField
                                     label="Ampolles"
-                                    type="number"
+                                    type="text"
                                     fullWidth
-                                    value={editForm.bottles ?? 0}
+                                    value={editForm.bottles === 0 ? '' : (editForm.bottles ?? '')}
+                                    placeholder="0"
                                     onChange={e => setEditForm(f => ({ ...f, bottles: parseInt(e.target.value) || 0 }))}
-                                    onFocus={e => e.target.select()}
+                                    inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
                                     InputLabelProps={{ shrink: true }}
                                 />
                             </Box>
