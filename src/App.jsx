@@ -95,10 +95,14 @@ function App() {
     const [stockLevels, setStockLevels] = useState({});
     const [loading, setLoading] = useState(false);
 
-    // Sync states
+    // Sync and History states
     const [syncDialogOpen, setSyncDialogOpen] = useState(false);
     const [syncProgress, setSyncProgress] = useState(0);
     const [syncCurrentItem, setSyncCurrentItem] = useState('');
+    const [globalLogs, setGlobalLogs] = useState([]);
+    const [globalHistoryOpen, setGlobalHistoryOpen] = useState(false);
+    const [historyRange, setHistoryRange] = useState('24h');
+    const [loadingHistory, setLoadingHistory] = useState(false);
 
     const theme = createTheme({
         palette: {
@@ -172,6 +176,19 @@ function App() {
             const localUsr = JSON.parse(localStorage.getItem('inventory_custom_users') || '[]');
             setArticles([...new Set([...INITIAL_ARTICLES, ...localArt])]);
             setUsuaris([...new Set([...INITIAL_USUARIS, ...localUsr])]);
+        }
+    };
+
+    const fetchGlobalHistory = async () => {
+        setLoadingHistory(true);
+        try {
+            const res = await fetch(`${DEFAULT_SCRIPT_URL}?action=getHistory`);
+            const data = await res.json();
+            if (data.logs) setGlobalLogs(data.logs);
+        } catch (e) {
+            setSnackbar({ open: true, message: 'No s\'ha pogut carregar l\'historial', severity: 'error' });
+        } finally {
+            setLoadingHistory(false);
         }
     };
 
@@ -424,8 +441,14 @@ function App() {
                             <IconButton color="inherit" onClick={() => setView(view === 'grid' ? 'dash' : 'grid')}>
                                 {view === 'grid' ? <BarChart3 /> : <Layers />}
                             </IconButton>
-                            <IconButton color="inherit" onClick={() => setHistoryOpen(true)}>
+                            <IconButton color="inherit" onClick={() => {
+                                fetchGlobalHistory();
+                                setGlobalHistoryOpen(true);
+                            }}>
                                 <History size={22} />
+                            </IconButton>
+                            <IconButton color="inherit" onClick={() => setHistoryOpen(true)}>
+                                <Save size={20} />
                             </IconButton>
                             <IconButton color="inherit" onClick={() => {
                                 const newVal = !darkMode;
@@ -465,9 +488,7 @@ function App() {
                             boxShadow: darkMode ? '0 10px 40px rgba(0,0,0,0.5)' : '0 20px 60px rgba(0,0,0,0.05)',
                         }}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 900, color: 'text.secondary', letterSpacing: 2 }}>
-                                    PRODUCTES
-                                </Typography>
+                                <Typography variant="h4" sx={{ fontWeight: 900 }}>Productes</Typography>
                                 <Button variant="outlined" size="small" onClick={() => {
                                     const name = window.prompt("Nom article:")?.toUpperCase();
                                     if (name) {
@@ -511,27 +532,42 @@ function App() {
                             <Box sx={{ mt: 6, pt: 4, borderTop: '1px solid', borderColor: 'divider' }}>
                                 <Grid container spacing={3}>
                                     <Grid item xs={12} sm={6}>
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                            <Typography variant="caption" sx={{ fontWeight: 900, color: 'text.secondary' }}>RESPONSABLE</Typography>
+                                            <Typography
+                                                variant="caption"
+                                                sx={{ fontWeight: 900, color: 'primary.main', cursor: 'pointer' }}
+                                                onClick={() => {
+                                                    const name = window.prompt("Nom responsable:");
+                                                    if (name) {
+                                                        setUsuaris([...usuaris, name]);
+                                                        localStorage.setItem('inventory_custom_users', JSON.stringify([...usuaris, name]));
+                                                    }
+                                                }}
+                                            >+ NOU</Typography>
+                                        </Box>
                                         <TextField
-                                            label="Responsable"
                                             select
                                             fullWidth
                                             value={usuari}
                                             onChange={(e) => setUsuari(e.target.value)}
                                             SelectProps={{ native: true }}
-                                            variant="filled"
+                                            variant="outlined"
+                                            sx={{ '& select': { fontWeight: 800, py: 1.5 } }}
                                         >
                                             {usuaris.map(u => <option key={u} value={u}>{u}</option>)}
                                         </TextField>
                                     </Grid>
                                     <Grid item xs={12} sm={6}>
+                                        <Typography variant="caption" sx={{ fontWeight: 900, color: 'text.secondary', display: 'block', mb: 1 }}>UBICACIÓ</Typography>
                                         <TextField
-                                            label="Ubicació"
                                             select
                                             fullWidth
                                             value={ubicacio}
                                             onChange={(e) => setUbicacio(e.target.value)}
                                             SelectProps={{ native: true }}
-                                            variant="filled"
+                                            variant="outlined"
+                                            sx={{ '& select': { fontWeight: 800, py: 1.5 } }}
                                         >
                                             {UBICACIONS.map(u => <option key={u} value={u}>{u}</option>)}
                                         </TextField>
@@ -611,7 +647,14 @@ function App() {
 
                             <Box sx={{ display: 'flex', gap: 2 }}>
                                 <Box sx={{ flex: 1 }}>
-                                    <TextField label="Caixes (x6)" type="number" fullWidth value={caixes} onChange={(e) => setCaixes(e.target.value)} InputLabelProps={{ shrink: true }} />
+                                    <TextField
+                                        label="Caixes (x6)"
+                                        type="number"
+                                        fullWidth
+                                        value={caixes === 0 ? '' : caixes}
+                                        onChange={(e) => setCaixes(e.target.value === '' ? 0 : parseInt(e.target.value))}
+                                        InputLabelProps={{ shrink: true }}
+                                    />
                                     <Button
                                         fullWidth
                                         variant="action"
@@ -623,7 +666,14 @@ function App() {
                                     </Button>
                                 </Box>
                                 <Box sx={{ flex: 1 }}>
-                                    <TextField label="Ampolles" type="number" fullWidth value={ampolles} onChange={(e) => setAmpolles(e.target.value)} InputLabelProps={{ shrink: true }} />
+                                    <TextField
+                                        label="Ampolles"
+                                        type="number"
+                                        fullWidth
+                                        value={ampolles === 0 ? '' : ampolles}
+                                        onChange={(e) => setAmpolles(e.target.value === '' ? 0 : parseInt(e.target.value))}
+                                        InputLabelProps={{ shrink: true }}
+                                    />
                                     <Button
                                         fullWidth
                                         variant="action"
@@ -674,6 +724,72 @@ function App() {
                         <Typography variant="body2" sx={{ mb: 3 }}>Enviant: {syncCurrentItem}</Typography>
                         <LinearProgress variant="determinate" value={syncProgress} sx={{ height: 20, borderRadius: 10 }} />
                         <Typography variant="caption" sx={{ mt: 1, display: 'block', textAlign: 'right', fontWeight: 900 }}>{Math.round(syncProgress)}%</Typography>
+                    </DialogContent>
+                </Dialog>
+
+                <Dialog open={globalHistoryOpen} onClose={() => setGlobalHistoryOpen(false)} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: '24px' } }}>
+                    <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pt: 3, px: 3 }}>
+                        <Typography variant="h5" sx={{ fontWeight: 900 }}>Històric Global</Typography>
+                        <IconButton onClick={() => setGlobalHistoryOpen(false)}><X /></IconButton>
+                    </DialogTitle>
+                    <DialogContent sx={{ px: 3 }}>
+                        <Box sx={{ display: 'flex', gap: 1, mb: 3, overflowX: 'auto', py: 1 }}>
+                            {[
+                                { id: '24h', label: '24h' },
+                                { id: '3d', label: '3d' },
+                                { id: '7d', label: '7d' },
+                                { id: '30d', label: '1m' },
+                                { id: 'all', label: 'Tot' }
+                            ].map(filter => (
+                                <Button
+                                    key={filter.id}
+                                    size="small"
+                                    variant={historyRange === filter.id ? 'contained' : 'outlined'}
+                                    onClick={() => setHistoryRange(filter.id)}
+                                    sx={{ minWidth: '60px', borderRadius: '10px' }}
+                                >
+                                    {filter.label}
+                                </Button>
+                            ))}
+                        </Box>
+
+                        {loadingHistory ? (
+                            <Box sx={{ textAlign: 'center', py: 6 }}><CircularProgress size={30} /></Box>
+                        ) : globalLogs.length === 0 ? (
+                            <Typography sx={{ textAlign: 'center', py: 4, opacity: 0.6 }}>No s'han trobat registres.</Typography>
+                        ) : (
+                            <List sx={{ pt: 0 }}>
+                                {globalLogs
+                                    .filter(log => {
+                                        if (historyRange === 'all') return true;
+                                        const logDate = new Date(log.timestamp);
+                                        const now = new Date();
+                                        const diff = (now - logDate) / (1000 * 60 * 60);
+                                        if (historyRange === '24h') return diff <= 24;
+                                        if (historyRange === '3d') return diff <= 72;
+                                        if (historyRange === '7d') return diff <= 168;
+                                        if (historyRange === '30d') return diff <= 720;
+                                        return true;
+                                    })
+                                    .map((log, idx) => (
+                                        <Card key={idx} variant="outlined" sx={{ mb: 2, borderRadius: '16px', border: '1px solid', borderColor: 'divider' }}>
+                                            <CardContent sx={{ p: '16px !important' }}>
+                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                                    <Typography variant="body2" sx={{ fontWeight: 900, color: 'primary.main' }}>{log.article}</Typography>
+                                                    <Typography variant="caption" sx={{ fontWeight: 800, opacity: 0.6 }}>{log.timestamp}</Typography>
+                                                </Box>
+                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <Typography variant="caption" sx={{ fontWeight: 800 }}>{log.user} @ {log.location}</Typography>
+                                                    <Typography variant="body2" sx={{ fontWeight: 900 }}>{log.totalBottles} u.</Typography>
+                                                </Box>
+                                                {log.incidencia && (
+                                                    <Typography variant="caption" sx={{ color: 'error.main', fontWeight: 900, mt: 1, display: 'block' }}>⚠️ INCIDÈNCIA</Typography>
+                                                )}
+                                            </CardContent>
+                                        </Card>
+                                    ))}
+                            </List>
+                        )}
                     </DialogContent>
                 </Dialog>
 
