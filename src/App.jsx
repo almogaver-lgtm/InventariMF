@@ -64,32 +64,40 @@ const CHART_COLORS = ['#722f37', '#b91c1c', '#dc2626', '#ef4444', '#f87171', '#f
 const robustParseDate = (dateStr) => {
     if (!dateStr) return new Date(0);
     try {
-        // Normalitzem: treiem comes, punts i passem a minúscules
+        // Netegem el string de formats estranys de Google Sheets
         let clean = dateStr.replace(/,/g, '').replace(/\./g, '').toLowerCase();
 
-        const isPM = clean.includes('p m') || clean.includes('pm') || clean.includes('p m');
-        const isAM = clean.includes('a m') || clean.includes('am') || clean.includes('a m');
-
-        clean = clean.replace(/p\s?m/g, '').replace(/a\s?m/g, '').trim();
-
-        // Busquem números: DD MM YYYY HH MM SS
+        // El format esperat és DD/MM/YYYY HH:MM:SS
+        // Busquem tots els blocs de números
         const parts = clean.split(/[^0-9]+/).filter(x => x.length > 0);
-        if (parts.length < 3) return new Date(dateStr);
 
-        const day = parseInt(parts[0]);
-        const month = parseInt(parts[1]) - 1;
-        const year = parseInt(parts[2]);
-        let hours = parts.length > 3 ? parseInt(parts[3]) : 0;
-        const minutes = parts.length > 4 ? parseInt(parts[4]) : 0;
-        const seconds = parts.length > 5 ? parseInt(parts[5]) : 0;
+        if (parts.length >= 3) {
+            const day = parseInt(parts[0]);
+            const month = parseInt(parts[1]) - 1;
+            const year = parseInt(parts[2]);
 
-        if (isPM && hours < 12) hours += 12;
-        if (isAM && hours === 12) hours = 0;
+            // Si tenim hores...
+            let hours = parts.length > 3 ? parseInt(parts[3]) : 0;
+            const minutes = parts.length > 4 ? parseInt(parts[4]) : 0;
+            const seconds = parts.length > 5 ? parseInt(parts[5]) : 0;
 
-        return new Date(year, month, day, hours, minutes, seconds);
+            // Maneig de PM/AM si encara existís en dades velles
+            if ((clean.includes('p m') || clean.includes('pm')) && hours < 12) hours += 12;
+            if ((clean.includes('a m') || clean.includes('am')) && hours === 12) hours = 0;
+
+            const d = new Date(year, month, day, hours, minutes, seconds);
+            if (!isNaN(d.getTime())) return d;
+        }
+        return new Date(dateStr);
     } catch (e) {
         return new Date(dateStr);
     }
+};
+
+const formatCurrentDate = () => {
+    const now = new Date();
+    const pad = (n) => n.toString().padStart(2, '0');
+    return `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 };
 
 const GENERATE_YEARS = () => {
@@ -313,7 +321,7 @@ function App() {
     const handleSave = () => {
         const totalAmpolles = (parseInt(caixes || 0) * 6) + parseInt(ampolles || 0);
         const entry = {
-            timestamp: new Date().toLocaleString(),
+            timestamp: formatCurrentDate(),
             user: usuari,
             article: selectedArticle,
             year: anyada,
@@ -797,18 +805,20 @@ function App() {
                                     })
                                     .map((log, idx) => (
                                         <Card key={idx} variant="outlined" sx={{ mb: 2, borderRadius: '16px', border: '1px solid', borderColor: 'divider' }}>
-                                            <CardContent sx={{ p: '16px !important' }}>
-                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                                                    <Typography variant="body2" sx={{ fontWeight: 900, color: 'primary.main' }}>{log.article}</Typography>
-                                                    <Typography variant="caption" sx={{ fontWeight: 800, opacity: 0.6 }}>{log.timestamp}</Typography>
+                                            <CardContent sx={{ p: '14px !important' }}>
+                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                                                    <Typography variant="body2" sx={{ fontWeight: 900, color: 'primary.main' }}>{log.article} ({log.year})</Typography>
+                                                    <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary' }}>{log.totalBottles} uts.</Typography>
                                                 </Box>
+                                                <Typography variant="caption" sx={{ fontWeight: 700, opacity: 0.7, display: 'block', mb: 1 }}>
+                                                    {log.timestamp}
+                                                </Typography>
                                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <Typography variant="caption" sx={{ fontWeight: 800 }}>{log.user} @ {log.location}</Typography>
-                                                    <Typography variant="body2" sx={{ fontWeight: 900 }}>{log.totalBottles} u.</Typography>
+                                                    <Typography variant="caption" sx={{ fontWeight: 800 }}>{log.user} • {log.location}</Typography>
+                                                    {log.incidencia && (
+                                                        <Box sx={{ bgcolor: 'error.main', color: 'white', px: 1, py: 0.2, borderRadius: '4px', fontSize: '0.6rem', fontWeight: 900 }}>INCIDÈNCIA</Box>
+                                                    )}
                                                 </Box>
-                                                {log.incidencia && (
-                                                    <Typography variant="caption" sx={{ color: 'error.main', fontWeight: 900, mt: 1, display: 'block' }}>⚠️ INCIDÈNCIA</Typography>
-                                                )}
                                             </CardContent>
                                         </Card>
                                     ))}
