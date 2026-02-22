@@ -135,7 +135,7 @@ function App() {
     const [open, setOpen] = useState(false);
     const [ampolles, setAmpolles] = useState(0);
     const [caixes, setCaixes] = useState(0);
-    const [ubicacio, setUbicacio] = useState('Celler');
+    const [ubicacio, setUbicacio] = useState('Pla');
     const [usuari, setUsuari] = useState('David');
     const [anyada, setAnyada] = useState(new Date().getFullYear().toString());
     const [photo, setPhoto] = useState(null);
