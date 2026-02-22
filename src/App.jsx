@@ -58,7 +58,7 @@ const INITIAL_ARTICLES = [
 
 const INITIAL_USUARIS = ['David', 'Djilali', 'Clara'];
 const UBICACIONS = ['Pla', 'Celler', 'Botiga'];
-const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxcZLokCs5G-oL-PJw98LVkgw11mnsMPvc5MQKRPgue7ODCV4S1cfgSt7xiEdubgE4LTw/exec';
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwDeb83AzYE7bqmLP_RGEkd95JaJb73VWTLYtMhsv6jrl4K58HniTl3MrlqUFYm3xlY8A/exec';
 
 const CHART_COLORS = ['#722f37', '#b91c1c', '#dc2626', '#ef4444', '#f87171', '#fb923c', '#fbbf24', '#facc15', '#a3e635', '#4ade80', '#2dd4bf', '#22d3ee', '#38bdf8', '#60a5fa', '#818cf8', '#a78bfa', '#c084fc', '#e879f9', '#f472b6', '#fb7185'];
 
