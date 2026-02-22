@@ -95,6 +95,46 @@ function doPost(e) {
     if (data.action === "addUser")    return addConfig(ss, 1, data.name);
     if (data.action === "addArticle") return addConfig(ss, 2, data.name);
 
+    // ──────────────────────────────────────────────────────────────
+    // EDITAR REGISTRE EXISTENT (per timestamp original)
+    // ──────────────────────────────────────────────────────────────
+    if (data.action === "editEntry") {
+      const sheet = ss.getSheetByName("LOG GLOBAL");
+      if (!sheet) return jsonResponse({ status: "error", message: "Full LOG GLOBAL no trobat" });
+
+      const lastRow = sheet.getLastRow();
+      if (lastRow < 2) return jsonResponse({ status: "error", message: "Cap registre trobat" });
+
+      // Busquem la fila per timestamp original (columna A)
+      const tsCol = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+      let foundRow = -1;
+      for (let i = 0; i < tsCol.length; i++) {
+        const cellVal = tsCol[i][0] instanceof Date ? formatDate(tsCol[i][0]) : tsCol[i][0].toString();
+        if (cellVal === data.originalTimestamp) {
+          foundRow = i + 2; // +2 perquè comecem a fila 2 i l'índex és 0-based
+          break;
+        }
+      }
+
+      if (foundRow === -1) {
+        return jsonResponse({ status: "error", message: "Registre no trobat amb timestamp: " + data.originalTimestamp });
+      }
+
+      const newTotal = (Number(data.boxes) || 0) * 6 + (Number(data.bottles) || 0);
+
+      // Actualitzem les columnes: B=USUARI, C=ARTICLE, D=ANYADA, E=UBICACIÓ, F=AMPOLLES, G=CAIXES, H=TOTAL
+      sheet.getRange(foundRow, 2).setValue(data.user     || "");
+      sheet.getRange(foundRow, 3).setValue(data.article  || "");
+      sheet.getRange(foundRow, 4).setValue(data.year     || "");
+      sheet.getRange(foundRow, 5).setValue(data.location || "");
+      sheet.getRange(foundRow, 6).setValue(Number(data.bottles) || 0);
+      sheet.getRange(foundRow, 7).setValue(Number(data.boxes)   || 0);
+      sheet.getRange(foundRow, 8).setValue(newTotal);
+
+      Logger.log("Registre editat a fila " + foundRow);
+      return jsonResponse({ status: "success", updatedRow: foundRow, newTotal });
+    }
+
     // GESTIÓ DE FOTOS D'INCIDÈNCIES
     if (data.image && data.incidencia) {
       saveIncidentPhoto(data.image, data.article, data.timestamp);

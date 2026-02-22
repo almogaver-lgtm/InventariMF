@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     ThemeProvider,
     createTheme,
@@ -45,7 +45,8 @@ import {
     Layers,
     PieChart as PieIcon,
     RefreshCcw,
-    ArrowUpRight
+    ArrowUpRight,
+    Edit2
 } from 'lucide-react';
 
 const INITIAL_ARTICLES = [
@@ -55,8 +56,8 @@ const INITIAL_ARTICLES = [
     'LIMONCELLO', 'GINEBRA', 'CAVA BLANC', 'CAVA ROSAT', 'CAVA PICAPOLL'
 ];
 
-const INITIAL_USUARIS = ['David', 'Clara', 'Djilali'];
-const UBICACIONS = ['Celler', 'Pla', 'Botiga'];
+const INITIAL_USUARIS = ['David', 'Djilali', 'Clara'];
+const UBICACIONS = ['Pla', 'Celler', 'Botiga'];
 const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxcZLokCs5G-oL-PJw98LVkgw11mnsMPvc5MQKRPgue7ODCV4S1cfgSt7xiEdubgE4LTw/exec';
 
 const CHART_COLORS = ['#722f37', '#b91c1c', '#dc2626', '#ef4444', '#f87171', '#fb923c', '#fbbf24', '#facc15', '#a3e635', '#4ade80', '#2dd4bf', '#22d3ee', '#38bdf8', '#60a5fa', '#818cf8', '#a78bfa', '#c084fc', '#e879f9', '#f472b6', '#fb7185'];
@@ -156,6 +157,13 @@ function App() {
     const [historyRange, setHistoryRange] = useState('24h');
     const [loadingHistory, setLoadingHistory] = useState(false);
 
+    // Edit history entry states
+    const [editLogOpen, setEditLogOpen] = useState(false);
+    const [editingLog, setEditingLog] = useState(null);
+    const [editForm, setEditForm] = useState({});
+    const [savingEdit, setSavingEdit] = useState(false);
+    const longPressTimer = useRef(null);
+
     const theme = createTheme({
         palette: {
             mode: darkMode ? 'dark' : 'light',
@@ -210,6 +218,71 @@ function App() {
             clearInterval(interval);
         };
     }, []);
+
+    const useLongPress = (log) => ({
+        onMouseDown: () => {
+            longPressTimer.current = setTimeout(() => {
+                setEditingLog(log);
+                setEditForm({
+                    article: log.article,
+                    year: log.year,
+                    location: log.location,
+                    bottles: log.bottles,
+                    boxes: log.boxes,
+                    totalBottles: log.totalBottles,
+                    timestamp: log.timestamp,
+                    user: log.user
+                });
+                setEditLogOpen(true);
+            }, 700);
+        },
+        onMouseUp: () => clearTimeout(longPressTimer.current),
+        onMouseLeave: () => clearTimeout(longPressTimer.current),
+        onTouchStart: () => {
+            longPressTimer.current = setTimeout(() => {
+                setEditingLog(log);
+                setEditForm({
+                    article: log.article,
+                    year: log.year,
+                    location: log.location,
+                    bottles: log.bottles,
+                    boxes: log.boxes,
+                    totalBottles: log.totalBottles,
+                    timestamp: log.timestamp,
+                    user: log.user
+                });
+                setEditLogOpen(true);
+            }, 700);
+        },
+        onTouchEnd: () => clearTimeout(longPressTimer.current),
+        onContextMenu: (e) => e.preventDefault(),
+    });
+
+    const handleSaveEditLog = async () => {
+        setSavingEdit(true);
+        const updated = {
+            ...editForm,
+            bottles: parseInt(editForm.bottles) || 0,
+            boxes: parseInt(editForm.boxes) || 0,
+            totalBottles: (parseInt(editForm.boxes) || 0) * 6 + (parseInt(editForm.bottles) || 0),
+        };
+        try {
+            await fetch(DEFAULT_SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'editEntry', originalTimestamp: editingLog.timestamp, ...updated })
+            });
+            // Update local state immediately
+            setGlobalLogs(prev => prev.map(l =>
+                l.timestamp === editingLog.timestamp && l.article === editingLog.article ? { ...l, ...updated } : l
+            ));
+            setSnackbar({ open: true, message: 'Registre actualitzat!', severity: 'success' });
+            setEditLogOpen(false);
+        } catch (err) {
+            setSnackbar({ open: true, message: 'Error actualitzant: ' + err.message, severity: 'error' });
+        } finally {
+            setSavingEdit(false);
+        }
+    };
 
     const fetchGlobalConfig = async () => {
         try {
@@ -855,11 +928,26 @@ function App() {
                                         };
 
                                         return (
-                                            <Card key={idx} variant="outlined" sx={{ mb: 2, borderRadius: '16px', border: '1px solid', borderColor: 'divider' }}>
+                                            <Card
+                                                key={idx}
+                                                variant="outlined"
+                                                {...useLongPress(log)}
+                                                sx={{
+                                                    mb: 2, borderRadius: '16px',
+                                                    border: '1px solid', borderColor: 'divider',
+                                                    cursor: 'pointer',
+                                                    userSelect: 'none',
+                                                    transition: 'all 0.15s ease',
+                                                    '&:active': { transform: 'scale(0.98)', opacity: 0.85 }
+                                                }}
+                                            >
                                                 <CardContent sx={{ p: '14px !important' }}>
                                                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                                                         <Typography variant="body2" sx={{ fontWeight: 900, color: 'primary.main' }}>{L.article} ({L.year})</Typography>
-                                                        <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary' }}>{L.total} uts.</Typography>
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                            <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary' }}>{L.total} uts.</Typography>
+                                                            <Edit2 size={12} style={{ opacity: 0.3 }} />
+                                                        </Box>
                                                     </Box>
                                                     <Typography variant="caption" sx={{ fontWeight: 700, opacity: 0.7, display: 'block', mb: 1 }}>
                                                         {L.timestamp}
@@ -877,6 +965,88 @@ function App() {
                             </List>
                         )}
                     </DialogContent>
+                </Dialog>
+
+                {/* Diàleg d'edició de registre historial */}
+                <Dialog open={editLogOpen} onClose={() => setEditLogOpen(false)} fullWidth maxWidth="xs" PaperProps={{ sx: { borderRadius: '24px' } }}>
+                    <DialogTitle sx={{ fontWeight: 900, pt: 3, px: 3 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Edit2 size={20} />
+                            Editar Registre
+                        </Box>
+                    </DialogTitle>
+                    <DialogContent sx={{ px: 3, pb: 2 }}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 1 }}>
+                            <TextField
+                                label="Article"
+                                fullWidth
+                                value={editForm.article || ''}
+                                onChange={e => setEditForm(f => ({ ...f, article: e.target.value.toUpperCase() }))}
+                                InputLabelProps={{ shrink: true }}
+                            />
+                            <Box sx={{ display: 'flex', gap: 2 }}>
+                                <TextField
+                                    label="Anyada"
+                                    select
+                                    fullWidth
+                                    value={editForm.year || ''}
+                                    onChange={e => setEditForm(f => ({ ...f, year: e.target.value }))}
+                                    SelectProps={{ native: true }}
+                                    InputLabelProps={{ shrink: true }}
+                                >
+                                    {GENERATE_YEARS().map(y => <option key={y} value={y}>{y}</option>)}
+                                </TextField>
+                                <TextField
+                                    label="Ubicació"
+                                    select
+                                    fullWidth
+                                    value={editForm.location || ''}
+                                    onChange={e => setEditForm(f => ({ ...f, location: e.target.value }))}
+                                    SelectProps={{ native: true }}
+                                    InputLabelProps={{ shrink: true }}
+                                >
+                                    {UBICACIONS.map(u => <option key={u} value={u}>{u}</option>)}
+                                </TextField>
+                            </Box>
+                            <Box sx={{ display: 'flex', gap: 2 }}>
+                                <TextField
+                                    label="Caixes (x6)"
+                                    type="number"
+                                    fullWidth
+                                    value={editForm.boxes ?? 0}
+                                    onChange={e => setEditForm(f => ({ ...f, boxes: parseInt(e.target.value) || 0 }))}
+                                    onFocus={e => e.target.select()}
+                                    InputLabelProps={{ shrink: true }}
+                                />
+                                <TextField
+                                    label="Ampolles"
+                                    type="number"
+                                    fullWidth
+                                    value={editForm.bottles ?? 0}
+                                    onChange={e => setEditForm(f => ({ ...f, bottles: parseInt(e.target.value) || 0 }))}
+                                    onFocus={e => e.target.select()}
+                                    InputLabelProps={{ shrink: true }}
+                                />
+                            </Box>
+                            <Box sx={{ p: 2, bgcolor: darkMode ? 'rgba(114,47,55,0.15)' : 'rgba(114,47,55,0.06)', borderRadius: '16px', textAlign: 'center' }}>
+                                <Typography variant="h4" sx={{ fontWeight: 900, color: 'primary.main' }}>
+                                    {(parseInt(editForm.boxes) || 0) * 6 + (parseInt(editForm.bottles) || 0)}
+                                    <small style={{ fontSize: '1rem', marginLeft: 6 }}>amp.</small>
+                                </Typography>
+                            </Box>
+                        </Box>
+                    </DialogContent>
+                    <DialogActions sx={{ px: 3, pb: 3 }}>
+                        <Button onClick={() => setEditLogOpen(false)}>Cancel·lar</Button>
+                        <Button
+                            variant="contained"
+                            onClick={handleSaveEditLog}
+                            disabled={savingEdit}
+                            startIcon={savingEdit ? <CircularProgress size={16} /> : <Save size={16} />}
+                        >
+                            {savingEdit ? 'Guardant...' : 'Guardar Canvis'}
+                        </Button>
+                    </DialogActions>
                 </Dialog>
 
                 <Dialog open={historyOpen} onClose={() => setHistoryOpen(false)} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: '24px' } }}>
