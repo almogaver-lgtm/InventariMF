@@ -57,7 +57,7 @@ const INITIAL_ARTICLES = [
 
 const INITIAL_USUARIS = ['David', 'Clara', 'Djilali'];
 const UBICACIONS = ['Celler', 'Pla', 'Botiga'];
-const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyTzEmOJ9MTnBB7cLjXwNN5mYS9Qf-v5iWMHrA12uL9S-SZDb_0BdUx9RiuTR0ljIbPIQ/exec';
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxcZLokCs5G-oL-PJw98LVkgw11mnsMPvc5MQKRPgue7ODCV4S1cfgSt7xiEdubgE4LTw/exec';
 
 const CHART_COLORS = ['#722f37', '#b91c1c', '#dc2626', '#ef4444', '#f87171', '#fb923c', '#fbbf24', '#facc15', '#a3e635', '#4ade80', '#2dd4bf', '#22d3ee', '#38bdf8', '#60a5fa', '#818cf8', '#a78bfa', '#c084fc', '#e879f9', '#f472b6', '#fb7185'];
 
@@ -233,12 +233,37 @@ function App() {
 
     const fetchGlobalHistory = async () => {
         setLoadingHistory(true);
+        setGlobalLogs([]); // Reset each time
         try {
             const res = await fetch(`${DEFAULT_SCRIPT_URL}?action=getHistory`);
-            const data = await res.json();
-            if (data.logs) setGlobalLogs(data.logs);
+            const text = await res.text();
+            console.log('RAW HISTORY RESPONSE:', text); // 🔍 Diagnosi: veure que retorna el script
+
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (parseErr) {
+                console.error('El script no ha retornat JSON vàlid:', text);
+                setSnackbar({ open: true, message: `Error: el script no retorna JSON. Resposta: ${text.substring(0, 80)}`, severity: 'error' });
+                setLoadingHistory(false);
+                return;
+            }
+
+            console.log('PARSED HISTORY DATA:', data);
+
+            // Suportem múltiples formats de resposta
+            const logs = data.logs || data.rows || data.data || data.records || (Array.isArray(data) ? data : null);
+
+            if (logs && logs.length > 0) {
+                setGlobalLogs(logs);
+                console.log(`✅ ${logs.length} registres carregats`);
+            } else {
+                console.warn('Resposta rebuda però sense registres:', data);
+                setSnackbar({ open: true, message: `El script ha respost però no hi ha dades. Claus rebudes: ${Object.keys(data).join(', ')}`, severity: 'warning' });
+            }
         } catch (e) {
-            setSnackbar({ open: true, message: 'No s\'ha pogut carregar l\'historial', severity: 'error' });
+            console.error('Error de xarxa:', e);
+            setSnackbar({ open: true, message: `Error de xarxa: ${e.message}`, severity: 'error' });
         } finally {
             setLoadingHistory(false);
         }
