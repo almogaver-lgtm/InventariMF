@@ -386,7 +386,10 @@ function App() {
         const file = e.target.files[0];
         if (file) {
             const reader = new FileReader();
-            reader.onloadend = () => setPhoto(reader.result);
+            reader.onloadend = () => {
+                setPhoto(reader.result);
+                setIsIncidencia(true); // Si hi ha foto, és una incidència per defecte
+            };
             reader.readAsDataURL(file);
         }
     };

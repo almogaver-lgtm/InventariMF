@@ -44,7 +44,7 @@ function doGet(e) {
 
       // Llegim totes les files de dades (des de fila 2 fins a l'última)
       const numRows = lastRow - 1;
-      const data = sheet.getRange(2, 1, numRows, 9).getValues(); // Columnes A-I
+      const data = sheet.getRange(2, 1, numRows, 10).getValues(); // Columnes A-J
 
       const logs = data
         .filter(row => row[0] !== "" && row[0] !== null) // Ignorem files buides
@@ -70,7 +70,7 @@ function doGet(e) {
             bottles:      Number(row[5]) || 0,
             boxes:        Number(row[6]) || 0,
             totalBottles: Number(row[7]) || 0,
-            incidencia:   false  // S'afegirà en futures versions si hi ha columna J
+            incidencia:   row[9] === true || row[9] === "true" || row[9] === "VERITAT"
           };
         })
         .reverse(); // Ordre invers: el més recent primer
@@ -130,14 +130,15 @@ function doPost(e) {
       sheet.getRange(foundRow, 6).setValue(Number(data.bottles) || 0);
       sheet.getRange(foundRow, 7).setValue(Number(data.boxes)   || 0);
       sheet.getRange(foundRow, 8).setValue(newTotal);
+      sheet.getRange(foundRow, 10).setValue(data.incidencia ? "true" : "false");
 
       Logger.log("Registre editat a fila " + foundRow);
       return jsonResponse({ status: "success", updatedRow: foundRow, newTotal });
     }
 
     // GESTIÓ DE FOTOS D'INCIDÈNCIES
-    if (data.image && data.incidencia) {
-      saveIncidentPhoto(data.image, data.article, data.timestamp);
+    if (data.image) {
+      saveIncidentPhoto(data.image, data.article, data.timestamp, data.user);
     }
 
     // REGISTRE NORMAL
@@ -163,7 +164,7 @@ function registerDataToSheet(ss, sheetName, data, updateTotals) {
 
   if (!sheet) {
     sheet = ss.insertSheet(sheetName);
-    sheet.appendRow(["TIMESTAMP", "USUARI", "ARTICLE", "ANYADA", "UBICACIÓ", "AMPOLLES", "CAIXES", "TOTAL AMPOLLES", "FONT UBICACIÓ"]);
+    sheet.appendRow(["TIMESTAMP", "USUARI", "ARTICLE", "ANYADA", "UBICACIÓ", "AMPOLLES", "CAIXES", "TOTAL AMPOLLES", "FONT UBICACIÓ", "INCIDÈNCIA"]);
     sheet.getRange("1:1").setFontWeight("bold").setBackground("#f3f3f3");
     sheet.setFrozenRows(1);
     sheet.getRange("L1:L3").setValues([["TOTAL ABSOLUT:"], ["CELLER/BOTIGA:"], ["EL PLA:"]]).setFontWeight("bold");
@@ -183,7 +184,8 @@ function registerDataToSheet(ss, sheetName, data, updateTotals) {
     Number(data.bottles)      || 0,
     Number(data.boxes)        || 0,
     Number(data.totalBottles) || 0,
-    data.locationSource || "App Mobil"
+    data.locationSource || "App Mobil",
+    data.incidencia ? "true" : "false"
   ];
   sheet.appendRow(row);
 
@@ -203,17 +205,23 @@ function registerDataToSheet(ss, sheetName, data, updateTotals) {
   }
 }
 
-function saveIncidentPhoto(base64, article, time) {
-  const folderName = "Stock Incidències";
-  const folders    = DriveApp.getFoldersByName(folderName);
-  const folder     = folders.hasNext() ? folders.next() : DriveApp.createFolder(folderName);
-
+function saveIncidentPhoto(base64, article, time, user) {
+  const folderId = "1IeXE8jeMDsIUIYC9PxxVZSLAe6bux8Yq";
+  
   try {
+    const folder = DriveApp.getFolderById(folderId);
     const contentType = base64.split(",")[0].split(":")[1].split(";")[0];
     const bytes       = Utilities.base64Decode(base64.split(",")[1]);
-    const safeName    = (article + "_" + (time || "").replace(/[/:\s]/g, "_")) + ".jpg";
-    const blob        = Utilities.newBlob(bytes, contentType, safeName);
+    
+    // Format: DD-MM-YYYY_HH-mm-ss_Usuari_Article.jpg
+    const safeTime = (time || "").replace(/[/]/g, "-").replace(/[:]/g, "-").replace(/\s/g, "_");
+    const safeUser = (user || "Anonim").replace(/\s/g, "_");
+    const safeArticle = (article || "Producte").replace(/\s/g, "_");
+    
+    const fileName = `${safeTime}_${safeUser}_${safeArticle}.jpg`;
+    const blob = Utilities.newBlob(bytes, contentType, fileName);
     folder.createFile(blob);
+    Logger.log("Foto guardada: " + fileName);
   } catch (e) {
     Logger.log("Error guardant foto: " + e.toString());
   }
