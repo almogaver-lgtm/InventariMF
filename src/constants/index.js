@@ -7,11 +7,11 @@ export const INITIAL_ARTICLES = [
 
 export const INITIAL_USUARIS = ['David', 'Djilali', 'Clara'];
 export const UBICACIONS = ['Pla', 'Celler', 'Botiga'];
-export const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwDeb83AzYE7bqmLP_RGEkd95JaJb73VWTLYtMhsv6jrl4K58HniTl3MrlqUFYm3xlY8A/exec';
+export const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxZQF76iLQH5-HSpC5DQcC0pC2yidJnN4Q584pxcR4vpMuqlP9-aD1I7oQCCOqI4MB8gw/exec';
 
 export const CHART_COLORS = [
-    '#722f37', '#b91c1c', '#dc2626', '#ef4444', '#f87171', 
-    '#fb923c', '#fbbf24', '#facc15', '#a3e635', '#4ade80', 
-    '#2dd4bf', '#22d3ee', '#38bdf8', '#60a5fa', '#818cf8', 
+    '#722f37', '#b91c1c', '#dc2626', '#ef4444', '#f87171',
+    '#fb923c', '#fbbf24', '#facc15', '#a3e635', '#4ade80',
+    '#2dd4bf', '#22d3ee', '#38bdf8', '#60a5fa', '#818cf8',
     '#a78bfa', '#c084fc', '#e879f9', '#f472b6', '#fb7185'
 ];
