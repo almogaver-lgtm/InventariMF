@@ -18,13 +18,16 @@ function doGet(e) {
       const users    = getColumnValues(ss, "CONFIG", 1);
       const articles = getColumnValues(ss, "CONFIG", 2);
       const stock    = {};
+      const materialStock = {};
+      
+      const allSheets = ss.getSheets();
+      const logSheet = allSheets.find(s => s.getName().trim().toUpperCase() === "LOG GLOBAL");
+      const matSheet = allSheets.find(s => s.getName().trim().toUpperCase() === "MATERIA SECA");
 
-      // Inicialitzem stock per a tots els articles configurats
+      // Inicialitzem stock per a tots els articles configurats (VINS)
       articles.forEach(art => {
         stock[art] = { total: 0, celler: 0, pla: 0 };
       });
-
-      const logSheet = ss.getSheetByName("LOG GLOBAL");
       if (logSheet) {
         const lastRow = logSheet.getLastRow();
         if (lastRow >= 2) {
@@ -39,7 +42,6 @@ function doGet(e) {
               if (loc.includes("celler") || loc.includes("botiga")) stock[art].celler += tot;
               else if (loc.includes("pla")) stock[art].pla += tot;
             } else if (art) {
-              // Si no existeix a la llista d'articles però hi ha dades al log
               stock[art] = { total: tot, celler: 0, pla: 0 };
               if (loc.includes("celler") || loc.includes("botiga")) stock[art].celler = tot;
               else if (loc.includes("pla")) stock[art].pla = tot;
@@ -48,35 +50,77 @@ function doGet(e) {
         }
       }
 
-      return jsonResponse({ users, articles, stock });
+      if (matSheet) {
+        const lastRow = matSheet.getLastRow();
+        if (lastRow >= 2) {
+          const data = matSheet.getRange(2, 1, lastRow - 1, 10).getValues(); // Get more columns A-J
+          data.forEach(row => {
+            const art = row[2] ? row[2].toString().trim() : ""; // Column C
+            const tot = Number(row[7]) || 0; // Column H (Total)
+            if (art) {
+              if (!materialStock[art]) materialStock[art] = { total: 0 };
+              materialStock[art].total += tot;
+            }
+          });
+        }
+      }
+
+      return jsonResponse({ 
+        users, 
+        articles, 
+        stock, 
+        materialStock, 
+        debug: { 
+          hasLogSheet: !!logSheet, 
+          hasMatSheet: !!matSheet,
+          matSheetName: matSheet ? matSheet.getName() : "None",
+          matLastRow: matSheet ? matSheet.getLastRow() : 0 
+        } 
+      });
     }
 
     // ─── GET HISTORY ───────────────────────────────────────────────────────────
     if (action === "getHistory") {
-      const sheet = ss.getSheetByName("LOG GLOBAL");
-      if (!sheet) return jsonResponse({ logs: [] });
+      const sheets = ["LOG GLOBAL", "MATERIA SECA"];
+      let allLogs = [];
+      
+      sheets.forEach(sName => {
+        const sheet = ss.getSheetByName(sName);
+        if (!sheet) return;
+        const lastRow = sheet.getLastRow();
+        if (lastRow < 2) return;
+        const data = sheet.getRange(2, 1, lastRow - 1, 10).getValues();
+        const logs = data
+          .filter(row => row[0] !== "")
+          .map(row => ({
+            timestamp:      row[0] instanceof Date ? formatDate(row[0]) : row[0].toString(),
+            user:           row[1] ? row[1].toString() : "",
+            article:        row[2] ? row[2].toString() : "",
+            year:           row[3] ? row[3].toString() : "",
+            location:       row[4] ? row[4].toString() : "",
+            bottles:        Number(row[5]) || 0,
+            boxes:          Number(row[6]) || 0,
+            totalBottles:   Number(row[7]) || 0,
+            locationSource: row[8] ? row[8].toString() : "",
+            incidenciaText: row[9] ? row[9].toString() : "",
+            sheet:          sName
+          }));
+        allLogs = allLogs.concat(logs);
+      });
 
-      const lastRow = sheet.getLastRow();
-      if (lastRow < 2) return jsonResponse({ logs: [] });
+      allLogs.sort((a, b) => {
+        // Sort by timestamp descending
+        // Simple string comparison since format is DD/MM/YYYY HH:mm:ss
+        // Better convert back to comparable for sort
+        const parseTS = (ts) => {
+          const [d, t] = ts.split(" ");
+          const [day, mon, yr] = d.split("/");
+          return `${yr}${mon}${day}${t}`;
+        };
+        return parseTS(b.timestamp).localeCompare(parseTS(a.timestamp));
+      });
 
-      const data = sheet.getRange(2, 1, lastRow - 1, 10).getValues(); // A-J
-      const logs = data
-        .filter(row => row[0] !== "")
-        .map(row => ({
-          timestamp:      row[0] instanceof Date ? formatDate(row[0]) : row[0].toString(),
-          user:           row[1] ? row[1].toString() : "",
-          article:        row[2] ? row[2].toString() : "",
-          year:           row[3] ? row[3].toString() : "",
-          location:       row[4] ? row[4].toString() : "",
-          bottles:        Number(row[5]) || 0,
-          boxes:          Number(row[6]) || 0,
-          totalBottles:   Number(row[7]) || 0,
-          locationSource: row[8] ? row[8].toString() : "",
-          incidenciaText: row[9] ? row[9].toString() : ""
-        }))
-        .reverse();
-
-      return jsonResponse({ logs });
+      return jsonResponse({ logs: allLogs });
     }
 
     // ─── GET STOCK BY VINTAGE ─────────────────────────────────────────────────
@@ -125,16 +169,24 @@ function doPost(e) {
     if (data.action === "addUser")    return jsonResponse(addConfig(ss, 1, data.name));
     if (data.action === "addArticle") return jsonResponse(addConfig(ss, 2, data.name));
 
-    const logSheet = ss.getSheetByName("LOG GLOBAL") || createLogGlobal(ss);
+    const targetSheetName = (data.sheet || "LOG GLOBAL").trim();
+    const logSheet = ss.getSheetByName(targetSheetName) || createLogGlobal(ss, targetSheetName);
 
     // ─── ELIMINAR ──────────────────────────────────────────────────────────────
     if (data.action === "deleteEntry") {
-      const tsCol = logSheet.getRange(2, 1, logSheet.getLastRow() - 1, 1).getValues();
-      for (let i = 0; i < tsCol.length; i++) {
-        const cellVal = tsCol[i][0] instanceof Date ? formatDate(tsCol[i][0]) : tsCol[i][0].toString();
-        if (cellVal === data.originalTimestamp) {
-          logSheet.deleteRow(i + 2);
-          return jsonResponse({ status: "success", deletedRow: i + 2 });
+      const sheets = ["LOG GLOBAL", "MATERIA SECA"];
+      for (let sName of sheets) {
+        const s = ss.getSheetByName(sName);
+        if (!s) continue;
+        const lastRow = s.getLastRow();
+        if (lastRow < 2) continue;
+        const tsCol = s.getRange(2, 1, lastRow - 1, 1).getValues();
+        for (let i = 0; i < tsCol.length; i++) {
+          const cellVal = tsCol[i][0] instanceof Date ? formatDate(tsCol[i][0]) : tsCol[i][0].toString();
+          if (cellVal === data.originalTimestamp) {
+            s.deleteRow(i + 2);
+            return jsonResponse({ status: "success" });
+          }
         }
       }
       return jsonResponse({ status: "error", message: "No trobat" });
@@ -142,22 +194,28 @@ function doPost(e) {
 
     // ─── EDITAR ───────────────────────────────────────────────────────────────
     if (data.action === "editEntry") {
-      const lastRow = logSheet.getLastRow();
-      const tsCol = logSheet.getRange(2, 1, lastRow - 1, 1).getValues();
-      for (let i = 0; i < tsCol.length; i++) {
-        const cellVal = tsCol[i][0] instanceof Date ? formatDate(tsCol[i][0]) : tsCol[i][0].toString();
-        if (cellVal === data.originalTimestamp) {
-          const row = i + 2;
-          const newTotal = (Number(data.boxes) || 0) * 6 + (Number(data.bottles) || 0); // TODO: check beer size if needed
-          logSheet.getRange(row, 2).setValue(data.user);
-          logSheet.getRange(row, 3).setValue(data.article);
-          logSheet.getRange(row, 4).setValue(data.year);
-          logSheet.getRange(row, 5).setValue(data.location);
-          logSheet.getRange(row, 6).setValue(data.bottles);
-          logSheet.getRange(row, 7).setValue(data.boxes);
-          logSheet.getRange(row, 8).setValue(newTotal);
-          logSheet.getRange(row, 10).setValue(data.incidenciaText || (data.incidencia ? "SÍ" : ""));
-          return jsonResponse({ status: "success" });
+      const sheets = ["LOG GLOBAL", "MATERIA SECA"];
+      for (let sName of sheets) {
+        const s = ss.getSheetByName(sName);
+        if (!s) continue;
+        const lastRow = s.getLastRow();
+        if (lastRow < 2) continue;
+        const tsCol = s.getRange(2, 1, lastRow - 1, 1).getValues();
+        for (let i = 0; i < tsCol.length; i++) {
+          const cellVal = tsCol[i][0] instanceof Date ? formatDate(tsCol[i][0]) : tsCol[i][0].toString();
+          if (cellVal === data.originalTimestamp) {
+            const row = i + 2;
+            const newTotal = (Number(data.boxes) || 0) * 6 + (Number(data.bottles) || 0);
+            s.getRange(row, 2).setValue(data.user);
+            s.getRange(row, 3).setValue(data.article);
+            s.getRange(row, 4).setValue(data.year);
+            s.getRange(row, 5).setValue(data.location);
+            s.getRange(row, 6).setValue(data.bottles);
+            s.getRange(row, 7).setValue(data.boxes);
+            s.getRange(row, 8).setValue(newTotal);
+            s.getRange(row, 10).setValue(data.incidenciaText || (data.incidencia ? "SÍ" : ""));
+            return jsonResponse({ status: "success" });
+          }
         }
       }
       return jsonResponse({ status: "error", message: "No trobat" });
@@ -190,8 +248,9 @@ function doPost(e) {
   }
 }
 
-function createLogGlobal(ss) {
-  const s = ss.insertSheet("LOG GLOBAL");
+function createLogGlobal(ss, name) {
+  const sheetName = name || "LOG GLOBAL";
+  const s = ss.insertSheet(sheetName);
   s.appendRow(["TIMESTAMP", "USUARI", "ARTICLE", "ANYADA", "UBICACIÓ", "AMPOLLES", "CAIXES", "TOTAL AMPOLLES", "FONT UBICACIÓ", "INCIDÈNCIA"]);
   s.getRange("1:1").setFontWeight("bold").setBackground("#f3f3f3");
   s.setFrozenRows(1);
