@@ -36,7 +36,8 @@ const EntryDialog = ({
         selectedArticle.includes('CAPSULES ') ||
         selectedArticle.includes('ETIQUETA ') ||
         selectedArticle.includes('CONTRAETIQUETA ') ||
-        selectedArticle.includes('CONTRA ')
+        selectedArticle.includes('CONTRA ') ||
+        selectedArticle.includes('CAIXES ')
     );
 
     const isCorkOrBottle = selectedArticle && (selectedArticle.includes('TAP ') || selectedArticle.includes('AMPOLLES '));

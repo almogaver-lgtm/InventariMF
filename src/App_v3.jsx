@@ -167,7 +167,7 @@ function App() {
 
     const handleSaveEntry = () => {
         // Detecció ultra-robusta de Matèria Seca
-        const keywords = ['TAP', 'AMPOLLE', 'CÀPSULE', 'CAPSULE', 'ETIQUETA', 'CONTRA'];
+        const keywords = ['TAP', 'AMPOLLE', 'CÀPSULE', 'CAPSULE', 'ETIQUETA', 'CONTRA', 'CAIXE'];
         const isMateriaSeca = selectedArticle && keywords.some(k => selectedArticle.toUpperCase().includes(k));
         const targetSheet = isMateriaSeca ? 'MATERIA SECA' : 'LOG GLOBAL';
 

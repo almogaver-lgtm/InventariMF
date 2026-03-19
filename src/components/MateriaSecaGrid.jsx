@@ -11,6 +11,7 @@ const MateriaSecaGrid = ({ onOpenArticle, onBack, darkMode, isSetupComplete }) =
         { id: 'TAPS', label: 'TAPS' },
         { id: 'AMPOLLES', label: 'AMPOLLES' },
         { id: 'CAPSULES', label: 'CÀPSULES' },
+        { id: 'CAIXES', label: 'CAIXES' },
         { id: 'ETIQUETES', label: 'ETIQUETES' }
     ];
 
@@ -162,6 +163,7 @@ const MateriaSecaGrid = ({ onOpenArticle, onBack, darkMode, isSetupComplete }) =
                 {subView === 'TAPS' && renderButtons(MATERIA_SECA.TAPS, 'TAP ')}
                 {subView === 'AMPOLLES' && renderButtons(MATERIA_SECA.AMPOLLES, 'AMPOLLES ')}
                 {subView === 'CAPSULES' && renderButtons(MATERIA_SECA.CAPSULES, 'CÀPSULES ')}
+                {subView === 'CAIXES' && renderButtons(MATERIA_SECA.CAIXES, 'CAIXES ')}
                 {subView === 'ETIQUETES' && renderWineLabels()}
             </Grid>
         </Box>

@@ -7,8 +7,9 @@ export const INITIAL_ARTICLES = [
 
 export const MATERIA_SECA = {
     TAPS: ['COLAMATS', 'FLOR', 'DE FUSTA'],
-    AMPOLLES: ['BLANQUES', 'VERDES', 'CADAC', 'DOLÇOS', 'OLI'],
-    CAPSULES: ['PICAPOLL', 'ROSAT', 'GX NEGRA', 'PERAFITA', 'CADAC', 'MISTEL·LA', 'GX DOLÇA', 'CAVA', 'CAVA PICAPOLL'],
+    AMPOLLES: ['BLANQUES', 'VERDES', 'CADAC', 'DOLÇOS', 'OLI', 'Magnum'],
+    CAPSULES: ['PICAPOLL', 'ROSAT', 'GX NEGRA', 'PERAFITA', 'CADAC', 'MISTEL·LA', 'GX DOLÇA', 'CAVA', 'CAVA PICAPOLL', 'Anònimes'],
+    CAIXES: ['picapoll', 'gx blanca', 'rosat', 'gx negra', 'merlot', 'perafita', 'mf', 'cadac', 'cadac magnum', 'dolços'],
     ETIQUETES: [
         'PICAPOLL', 'GX BLANCA', 'ROSAT', 'GX NEGRA', 'MERLOT',
         'PERAFITA NEGRA', 'MF', 'CADAC', 'VERMUT', 'MISTELLA',
