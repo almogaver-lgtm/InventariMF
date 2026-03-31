@@ -1,13 +1,13 @@
 export const INITIAL_ARTICLES = [
     'PICAPOLL', 'GX BLANCA', 'ROSAT', 'GX NEGRA', 'MERLOT',
-    'PERAFITA NEGRA', 'MF', 'CADAC', 'VERMUT', 'MISTELLA',
+    'PERAFITA NEGRA', 'MF', 'CADAC', 'PICAPOLL BARRICA', 'VERMUT', 'MISTELLA',
     'GX DOLÇA', 'CERVESA GRAN', 'OLI', 'CERVESA PETITA',
     'LIMONCELLO', 'GINEBRA', 'CAVA BLANC', 'CAVA ROSAT', 'CAVA PICAPOLL'
 ];
 
 export const INITIAL_USUARIS = ['David', 'Djilali', 'Clara'];
 export const UBICACIONS = ['Pla', 'Celler', 'Botiga'];
-export const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxZQF76iLQH5-HSpC5DQcC0pC2yidJnN4Q584pxcR4vpMuqlP9-aD1I7oQCCOqI4MB8gw/exec';
+export const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw-s4eucD1yNyAA_hmiG1MB4Ry0ZrB8rZSD-uzr_BeIIML-GVNJeiGg_YiFG-zBlmn6Bg/exec';
 
 export const CHART_COLORS = [
     '#722f37', '#b91c1c', '#dc2626', '#ef4444', '#f87171',

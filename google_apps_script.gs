@@ -26,25 +26,59 @@ function doGet(e) {
 
       // Inicialitzem stock per a tots els articles configurats (VINS)
       articles.forEach(art => {
-        stock[art] = { total: 0, celler: 0, pla: 0 };
+        stock[art] = { 
+          total: 0, celler: 0, pla: 0,
+          noEtiquetat: { total: 0, celler: 0, pla: 0 },
+          granel: { total: 0, celler: 0, pla: 0 },
+          magnum: { total: 0, celler: 0, pla: 0 }
+        };
       });
+
       if (logSheet) {
         const lastRow = logSheet.getLastRow();
         if (lastRow >= 2) {
-          const data = logSheet.getRange(2, 1, lastRow - 1, 8).getValues(); // A-H
+          const data = logSheet.getRange(2, 1, lastRow - 1, 12).getValues(); // A-L
           data.forEach(row => {
             const art = row[2];
             const loc = (row[4] || "").toString().toLowerCase();
-            const tot = Number(row[7]) || 0;
+            const totBottles = Number(row[7]) || 0;
+            const incidMagnum = (row[9] || "").toString().toUpperCase();
+            const isNoEtiquetat = (row[10] || "").toString().toUpperCase() === "SÍ";
+            const granelLitres = Number(row[11]) || 0;
 
-            if (stock[art]) {
-              stock[art].total += tot;
-              if (loc.includes("celler") || loc.includes("botiga")) stock[art].celler += tot;
-              else if (loc.includes("pla")) stock[art].pla += tot;
-            } else if (art) {
-              stock[art] = { total: tot, celler: 0, pla: 0 };
-              if (loc.includes("celler") || loc.includes("botiga")) stock[art].celler = tot;
-              else if (loc.includes("pla")) stock[art].pla = tot;
+            if (!stock[art]) {
+              stock[art] = { 
+                total: 0, celler: 0, pla: 0,
+                noEtiquetat: { total: 0, celler: 0, pla: 0 },
+                granel: { total: 0, celler: 0, pla: 0 },
+                magnum: { total: 0, celler: 0, pla: 0 }
+              };
+            }
+
+            const target = stock[art];
+            const isMagnum = incidMagnum === "MAGNUM";
+
+            if (granelLitres > 0) {
+              target.granel.total += granelLitres;
+              if (loc.includes("celler") || loc.includes("botiga")) target.granel.celler += granelLitres;
+              else if (loc.includes("pla")) target.granel.pla += granelLitres;
+            } else if (isNoEtiquetat) {
+              target.noEtiquetat.total += totBottles;
+              if (loc.includes("celler") || loc.includes("botiga")) target.noEtiquetat.celler += totBottles;
+              else if (loc.includes("pla")) target.noEtiquetat.pla += totBottles;
+            } else if (isMagnum) {
+              target.magnum.total += totBottles;
+              if (loc.includes("celler") || loc.includes("botiga")) target.magnum.celler += totBottles;
+              else if (loc.includes("pla")) target.magnum.pla += totBottles;
+              
+              // El Magnum també compta al total principal per a CADAC segons demanat
+              target.total += totBottles;
+              if (loc.includes("celler") || loc.includes("botiga")) target.celler += totBottles;
+              else if (loc.includes("pla")) target.pla += totBottles;
+            } else {
+              target.total += totBottles;
+              if (loc.includes("celler") || loc.includes("botiga")) target.celler += totBottles;
+              else if (loc.includes("pla")) target.pla += totBottles;
             }
           });
         }
@@ -89,7 +123,7 @@ function doGet(e) {
         if (!sheet) return;
         const lastRow = sheet.getLastRow();
         if (lastRow < 2) return;
-        const data = sheet.getRange(2, 1, lastRow - 1, 10).getValues();
+        const data = sheet.getRange(2, 1, lastRow - 1, 12).getValues(); // A-L
         const logs = data
           .filter(row => row[0] !== "")
           .map(row => ({
@@ -103,6 +137,8 @@ function doGet(e) {
             totalBottles:   Number(row[7]) || 0,
             locationSource: row[8] ? row[8].toString() : "",
             incidenciaText: row[9] ? row[9].toString() : "",
+            noEtiquetat:    row[10] ? row[10].toString() : "",
+            granelLitres:   Number(row[11]) || 0,
             sheet:          sName
           }));
         allLogs = allLogs.concat(logs);
@@ -134,17 +170,26 @@ function doGet(e) {
       if (logSheet) {
         const lastRow = logSheet.getLastRow();
         if (lastRow >= 2) {
-          const data = logSheet.getRange(2, 3, lastRow - 1, 8).getValues(); // C-J (Col 3-10)
+          const data = logSheet.getRange(2, 3, lastRow - 1, 10).getValues(); // C-L (Col 3-12)
           data.forEach(row => {
             // row[0] (Col C) = Article
             // row[1] (Col D) = Anyada
             // row[5] (Col H) = Total
-            // row[7] (Col J) = Incidència
+            // row[7] (Col J) = Incidència / Magnum
+            // row[8] (Col K) = No Etiquetat
+            // row[9] (Col L) = Granel
             if (row[0] === article) {
               const year = row[1] || "Sense anyada";
               if (!vintagesMap[year]) vintagesMap[year] = { year: year, total: 0, hasIncidents: false };
-              vintagesMap[year].total += (Number(row[5]) || 0);
-              if (row[7] && row[7] !== "") vintagesMap[year].hasIncidents = true;
+              
+              const isGranel = (Number(row[9]) || 0) > 0;
+              const isNoEtiquetat = (row[8] || "").toString().toUpperCase() === "SÍ";
+              
+              // Només comptem estoc principal per anyades en aquest diàleg
+              if (!isGranel && !isNoEtiquetat) {
+                vintagesMap[year].total += (Number(row[5]) || 0);
+              }
+              if (row[7] && row[7] !== "" && row[7] !== "MAGNUM") vintagesMap[year].hasIncidents = true;
             }
           });
         }
@@ -213,7 +258,9 @@ function doPost(e) {
             s.getRange(row, 6).setValue(data.bottles);
             s.getRange(row, 7).setValue(data.boxes);
             s.getRange(row, 8).setValue(newTotal);
-            s.getRange(row, 10).setValue(data.incidenciaText || (data.incidencia ? "SÍ" : ""));
+            s.getRange(row, 10).setValue(data.isMagnum ? "MAGNUM" : (data.incidenciaText || (data.incidencia ? "SÍ" : "")));
+            s.getRange(row, 11).setValue(data.isNoEtiquetat ? "SÍ" : "");
+            s.getRange(row, 12).setValue(Number(data.granelLitres) || 0);
             return jsonResponse({ status: "success" });
           }
         }
@@ -237,7 +284,9 @@ function doPost(e) {
       Number(data.boxes) || 0,
       Number(data.totalBottles) || 0,
       data.locationSource || "App Mobil v2",
-      data.incidenciaText || (data.incidencia ? "SÍ" : "")
+      data.isMagnum ? "MAGNUM" : (data.incidenciaText || (data.incidencia ? "SÍ" : "")),
+      data.isNoEtiquetat ? "SÍ" : "",
+      Number(data.granelLitres) || 0
     ];
     logSheet.appendRow(row);
 
@@ -251,7 +300,7 @@ function doPost(e) {
 function createLogGlobal(ss, name) {
   const sheetName = name || "LOG GLOBAL";
   const s = ss.insertSheet(sheetName);
-  s.appendRow(["TIMESTAMP", "USUARI", "ARTICLE", "ANYADA", "UBICACIÓ", "AMPOLLES", "CAIXES", "TOTAL AMPOLLES", "FONT UBICACIÓ", "INCIDÈNCIA"]);
+  s.appendRow(["TIMESTAMP", "USUARI", "ARTICLE", "ANYADA", "UBICACIÓ", "AMPOLLES", "CAIXES", "TOTAL AMPOLLES", "FONT UBICACIÓ", "INCIDÈNCIA / MAGNUM", "NO ETIQUETAT", "A GRANEL (L)"]);
   s.getRange("1:1").setFontWeight("bold").setBackground("#f3f3f3");
   s.setFrozenRows(1);
   return s;

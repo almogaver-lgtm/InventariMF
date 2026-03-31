@@ -22,6 +22,14 @@ const EntryDialog = ({
     setIsIncidencia,
     incidenciaText,
     setIncidenciaText,
+    isNoEtiquetat,
+    setIsNoEtiquetat,
+    isGranel,
+    setIsGranel,
+    granelLitres,
+    setGranelLitres,
+    isMagnum,
+    setIsMagnum,
     photo,
     setPhoto,
     onPhotoCapture,
@@ -54,6 +62,8 @@ const EntryDialog = ({
         : (parseInt(caixes || 0) * bottlesPerBox) + parseInt(ampolles || 0);
 
     const isBigBeer = selectedArticle === 'CERVESA GRAN';
+    const isMagnumAllowed = selectedArticle === 'CADAC' || selectedArticle === 'PICAPOLL BARRICA';
+    const isWineOrBeer = !isMateriaSeca;
 
     return (
         <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs" PaperProps={{ sx: { borderRadius: '28px' } }}>
@@ -119,6 +129,21 @@ const EntryDialog = ({
                                     >+50</Button>
                                 </Grid>
                             </Grid>
+                        </Box>
+                    ) : isGranel ? (
+                        /* GRANEL MODE: Only show liters input */
+                        <Box>
+                            <TextField
+                                label="Litres a Granel"
+                                type="number"
+                                fullWidth
+                                value={granelLitres || ''}
+                                placeholder="0.00"
+                                onChange={(e) => setGranelLitres(e.target.value)}
+                                inputProps={{ inputMode: 'decimal', step: '0.01' }}
+                                InputLabelProps={{ shrink: true }}
+                                autoFocus
+                            />
                         </Box>
                     ) : (
                         /* ORIGINAL LAYOUT FOR WINE/BEER: Boxes and Bottles side by side */
@@ -196,20 +221,27 @@ const EntryDialog = ({
                         borderColor: 'primary.main'
                     }}>
                         <Typography variant="h2" sx={{ fontWeight: 900, color: 'primary.main', lineHeight: 1 }}>
-                            {totalUnits} <small style={{ fontSize: '1.2rem', verticalAlign: 'middle' }}>{isMateriaSeca ? 'unit.' : 'amp.'}</small>
+                            {isGranel
+                                ? (granelLitres || 0)
+                                : totalUnits
+                            } <small style={{ fontSize: '1.2rem', verticalAlign: 'middle' }}>
+                                {isMateriaSeca ? 'unit.' : (isGranel ? 'L.' : 'amp.')}
+                            </small>
                         </Typography>
-                        {isBigBeer && barrils > 0 && (
+                        {isBigBeer && !isGranel && barrils > 0 && (
                             <Typography sx={{ fontWeight: 800, mt: 1, color: 'text.primary' }}>
                                 + {barrils} BARRILS
                             </Typography>
                         )}
                     </Box>
 
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+
+                        {/* Row 1: Incidència + Foto */}
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                <Switch checked={isIncidencia} onChange={(e) => setIsIncidencia(e.target.checked)} />
-                                <Typography variant="body2" sx={{ fontWeight: 800 }}>⚠️ Incidència</Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: isIncidencia ? 'primary.main' : 'action.hover', px: 1.5, py: 0.5, borderRadius: '12px', color: isIncidencia ? 'white' : 'text.primary', transition: '0.2s', cursor: 'pointer' }} onClick={() => setIsIncidencia(!isIncidencia)}>
+                                <Switch size="small" checked={isIncidencia} onChange={(e) => setIsIncidencia(e.target.checked)} color="default" />
+                                <Typography variant="body2" sx={{ fontWeight: 800, ml: 0.5 }}>⚠️ Incidència</Typography>
                             </Box>
                             <Button component="label" variant="text" startIcon={<Camera size={20} />}>
                                 Foto
@@ -217,6 +249,29 @@ const EntryDialog = ({
                             </Button>
                         </Box>
 
+                        {/* Row 2: No Etiquetat + A Granel (only for wine/beer) */}
+                        {isWineOrBeer && (
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: isNoEtiquetat ? 'primary.main' : 'action.hover', px: 1, py: 0.5, borderRadius: '12px', flex: 1, color: isNoEtiquetat ? 'white' : 'text.primary', transition: '0.2s', cursor: 'pointer' }} onClick={() => setIsNoEtiquetat(!isNoEtiquetat)}>
+                                    <Switch size="small" checked={isNoEtiquetat} onChange={(e) => setIsNoEtiquetat(e.target.checked)} color="default" />
+                                    <Typography variant="caption" sx={{ fontWeight: 800, ml: 0.5 }}>NO ETIQUETAT</Typography>
+                                </Box>
+                                <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: isGranel ? 'primary.main' : 'action.hover', px: 1, py: 0.5, borderRadius: '12px', flex: 1, color: isGranel ? 'white' : 'text.primary', transition: '0.2s', cursor: 'pointer' }} onClick={() => setIsGranel(!isGranel)}>
+                                    <Switch size="small" checked={isGranel} onChange={(e) => setIsGranel(e.target.checked)} color="default" />
+                                    <Typography variant="caption" sx={{ fontWeight: 800, ml: 0.5 }}>A GRANEL</Typography>
+                                </Box>
+                            </Box>
+                        )}
+
+                        {/* Row 3: Magnum — only for allowed wines */}
+                        {isMagnumAllowed && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: isMagnum ? '#7b1fa2' : 'action.hover', px: 1.5, py: 0.5, borderRadius: '12px', color: isMagnum ? 'white' : 'text.primary', transition: '0.2s', cursor: 'pointer' }} onClick={() => setIsMagnum(!isMagnum)}>
+                                <Switch size="small" checked={isMagnum} onChange={(e) => setIsMagnum(e.target.checked)} color="default" />
+                                <Typography variant="body2" sx={{ fontWeight: 800, ml: 0.5 }}>🍾 MAGNUM (1.5L)</Typography>
+                            </Box>
+                        )}
+
+                        {/* Incidència text field */}
                         {isIncidencia && (
                             <TextField
                                 label="Descripció de la incidència"

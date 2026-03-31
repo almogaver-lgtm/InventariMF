@@ -22,6 +22,14 @@ const EntryDialog = ({
     setIsIncidencia,
     incidenciaText,
     setIncidenciaText,
+    isNoEtiquetat,
+    setIsNoEtiquetat,
+    isGranel,
+    setIsGranel,
+    granelLitres,
+    setGranelLitres,
+    isMagnum,
+    setIsMagnum,
     photo,
     setPhoto,
     onPhotoCapture,
@@ -37,6 +45,7 @@ const EntryDialog = ({
     const bottlesPerBox = getBottlesPerBox();
     const totalBottles = (parseInt(caixes || 0) * bottlesPerBox) + parseInt(ampolles || 0);
     const isBigBeer = selectedArticle === 'CERVESA GRAN';
+    const isCadac = selectedArticle === 'CADAC';
 
     return (
         <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs" PaperProps={{ sx: { borderRadius: '28px' } }}>
@@ -56,50 +65,65 @@ const EntryDialog = ({
                         {years.map(y => <option key={y} value={y}>{y}</option>)}
                     </TextField>
 
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-                        <Box sx={{ flex: 1 }}>
+                    {isGranel ? (
+                        <Box>
                             <TextField
-                                label={`Caixes (x${bottlesPerBox})`}
-                                type="text"
+                                label="Litres a Granel"
+                                type="number"
                                 fullWidth
-                                value={caixes === 0 ? '' : caixes}
-                                placeholder="0"
-                                onChange={(e) => setCaixes(parseInt(e.target.value) || 0)}
-                                inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
+                                value={granelLitres || ''}
+                                placeholder="0.00"
+                                onChange={(e) => setGranelLitres(e.target.value)}
+                                inputProps={{ inputMode: 'decimal', step: '0.01' }}
                                 InputLabelProps={{ shrink: true }}
                             />
-                            <Button
-                                fullWidth
-                                size="small"
-                                onClick={() => setCaixes(prev => parseInt(prev || 0) + 1)}
-                                sx={{ mt: 1, bgcolor: 'action.hover', fontWeight: 800, borderRadius: '10px', color: 'text.primary' }}
-                            >
-                                +1 Caixa
-                            </Button>
                         </Box>
-                        <Box sx={{ flex: 1 }}>
-                            <TextField
-                                label="Ampolles"
-                                type="text"
-                                fullWidth
-                                value={ampolles === 0 ? '' : ampolles}
-                                placeholder="0"
-                                onChange={(e) => setAmpolles(parseInt(e.target.value) || 0)}
-                                inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
-                                InputLabelProps={{ shrink: true }}
-                            />
-                            <Button
-                                fullWidth
-                                size="small"
-                                onClick={() => setAmpolles(prev => parseInt(prev || 0) + 1)}
-                                sx={{ mt: 1, bgcolor: 'action.hover', fontWeight: 800, borderRadius: '10px', color: 'text.primary' }}
-                            >
-                                +1 Amp.
-                            </Button>
+                    ) : (
+                        <Box sx={{ display: 'flex', gap: 2 }}>
+                            <Box sx={{ flex: 1 }}>
+                                <TextField
+                                    label={`Caixes (x${bottlesPerBox})`}
+                                    type="text"
+                                    fullWidth
+                                    value={caixes === 0 ? '' : caixes}
+                                    placeholder="0"
+                                    onChange={(e) => setCaixes(parseInt(e.target.value) || 0)}
+                                    inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
+                                    InputLabelProps={{ shrink: true }}
+                                />
+                                <Button
+                                    fullWidth
+                                    size="small"
+                                    onClick={() => setCaixes(prev => parseInt(prev || 0) + 1)}
+                                    sx={{ mt: 1, bgcolor: 'action.hover', fontWeight: 800, borderRadius: '10px', color: 'text.primary' }}
+                                >
+                                    +1 Caixa
+                                </Button>
+                            </Box>
+                            <Box sx={{ flex: 1 }}>
+                                <TextField
+                                    label="Ampolles"
+                                    type="text"
+                                    fullWidth
+                                    value={ampolles === 0 ? '' : ampolles}
+                                    placeholder="0"
+                                    onChange={(e) => setAmpolles(parseInt(e.target.value) || 0)}
+                                    inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
+                                    InputLabelProps={{ shrink: true }}
+                                />
+                                <Button
+                                    fullWidth
+                                    size="small"
+                                    onClick={() => setAmpolles(prev => parseInt(prev || 0) + 1)}
+                                    sx={{ mt: 1, bgcolor: 'action.hover', fontWeight: 800, borderRadius: '10px', color: 'text.primary' }}
+                                >
+                                    +1 Amp.
+                                </Button>
+                            </Box>
                         </Box>
-                    </Box>
+                    )}
 
-                    {isBigBeer && (
+                    {isBigBeer && !isGranel && (
                         <Box>
                             <TextField
                                 label="Barrils"
@@ -124,8 +148,9 @@ const EntryDialog = ({
 
                     <Box sx={{ p: 2.5, bgcolor: darkMode ? 'rgba(114, 47, 55, 0.15)' : 'rgba(114, 47, 55, 0.05)', borderRadius: '20px', textAlign: 'center' }}>
                         <Typography variant="h3" sx={{ fontWeight: 900, color: 'primary.main' }}>
-                            {totalBottles} <small style={{ fontSize: '1rem' }}>amp.</small>
-                            {isBigBeer && barrils > 0 && (
+                            {isGranel ? granelLitres || 0 : totalBottles} 
+                            <small style={{ fontSize: '1rem', marginLeft: '6px' }}>{isGranel ? 'L.' : 'amp.'}</small>
+                            {isBigBeer && !isGranel && barrils > 0 && (
                                 <Typography component="span" sx={{ display: 'block', fontSize: '1.2rem', fontWeight: 800, mt: 0.5 }}>
                                     + {barrils} barrils
                                 </Typography>
@@ -133,16 +158,42 @@ const EntryDialog = ({
                         </Typography>
                     </Box>
 
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                <Switch checked={isIncidencia} onChange={(e) => setIsIncidencia(e.target.checked)} />
-                                <Typography variant="body2" sx={{ fontWeight: 800 }}>⚠️ Incidència</Typography>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                            {/* Row 1: Common Actions */}
+                            <Box sx={{ display: 'flex', flex: 1, gap: 1 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: isIncidencia ? 'primary.main' : 'action.hover', p: 0.5, borderRadius: '12px', flex: 1, color: isIncidencia ? 'white' : 'text.primary', transition: '0.2s' }}>
+                                    <Switch size="small" checked={isIncidencia} onChange={(e) => setIsIncidencia(e.target.checked)} color="default" />
+                                    <Typography variant="caption" sx={{ fontWeight: 800, ml: 0.5 }}>INCIDÈNCIA</Typography>
+                                </Box>
+                                <Button component="label" variant="text" size="small" startIcon={<Camera size={18} />} sx={{ fontWeight: 800 }}>
+                                    FOTO
+                                    <input type="file" hidden accept="image/*" onChange={onPhotoCapture} />
+                                </Button>
                             </Box>
-                            <Button component="label" variant="text" startIcon={<Camera size={20} />}>
-                                Foto
-                                <input type="file" hidden accept="image/*" onChange={onPhotoCapture} />
-                            </Button>
+
+                            {/* Row 2: Type toggles */}
+                            <Box sx={{ display: 'flex', width: '100%', gap: 1 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: isNoEtiquetat ? 'primary.main' : 'action.hover', p: 0.5, borderRadius: '12px', flex: 1, color: isNoEtiquetat ? 'white' : 'text.primary', transition: '0.2s' }}>
+                                    <Switch size="small" checked={isNoEtiquetat} onChange={(e) => setIsNoEtiquetat(e.target.checked)} color="default" />
+                                    <Typography variant="caption" sx={{ fontWeight: 800, ml: 0.5 }}>NO ETIQUETAT</Typography>
+                                </Box>
+                                
+                                <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: isGranel ? 'primary.main' : 'action.hover', p: 0.5, borderRadius: '12px', flex: 1, color: isGranel ? 'white' : 'text.primary', transition: '0.2s' }}>
+                                    <Switch size="small" checked={isGranel} onChange={(e) => setIsGranel(e.target.checked)} color="default" />
+                                    <Typography variant="caption" sx={{ fontWeight: 800, ml: 0.5 }}>A GRANEL</Typography>
+                                </Box>
+                            </Box>
+
+                            {/* Special Row: Magnum only for CADAC */}
+                            {isCadac && (
+                                <Box sx={{ display: 'flex', width: '100%' }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: isMagnum ? 'primary.main' : 'action.hover', p: 0.5, borderRadius: '12px', flex: 1, color: isMagnum ? 'white' : 'text.primary', transition: '0.2s' }}>
+                                        <Switch size="small" checked={isMagnum} onChange={(e) => setIsMagnum(e.target.checked)} color="default" />
+                                        <Typography variant="caption" sx={{ fontWeight: 800, ml: 0.5 }}>MAGNUM (1.5L)</Typography>
+                                    </Box>
+                                </Box>
+                            )}
                         </Box>
 
                         {isIncidencia && (
@@ -156,6 +207,7 @@ const EntryDialog = ({
                                 placeholder="Explica què ha passat..."
                                 variant="outlined"
                                 autoFocus
+                                sx={{ mt: 1 }}
                             />
                         )}
                     </Box>
@@ -171,8 +223,8 @@ const EntryDialog = ({
                 </Box>
             </DialogContent>
             <DialogActions sx={{ p: 3 }}>
-                <Button onClick={onClose}>Anul·lar</Button>
-                <Button variant="contained" onClick={onSave} startIcon={<Save />}>Guardar local</Button>
+                <Button onClick={onClose} sx={{ fontWeight: 800 }}>Anul·lar</Button>
+                <Button variant="contained" onClick={onSave} startIcon={<Save />} sx={{ fontWeight: 800 }}>Guardar local</Button>
             </DialogActions>
         </Dialog>
     );

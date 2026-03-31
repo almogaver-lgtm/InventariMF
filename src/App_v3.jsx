@@ -44,6 +44,10 @@ function App() {
     const [photo, setPhoto] = useState(null);
     const [isIncidencia, setIsIncidencia] = useState(false);
     const [incidenciaText, setIncidenciaText] = useState('');
+    const [isNoEtiquetat, setIsNoEtiquetat] = useState(false);
+    const [isGranel, setIsGranel] = useState(false);
+    const [granelLitres, setGranelLitres] = useState('');
+    const [isMagnum, setIsMagnum] = useState(false);
 
     // Selection State
     const [usuari, setUsuari] = useState(localStorage.getItem('inventory_user') || '');
@@ -148,6 +152,10 @@ function App() {
         setSelectedArticle(article);
         setIsIncidencia(false);
         setIncidenciaText('');
+        setIsNoEtiquetat(false);
+        setIsGranel(false);
+        setGranelLitres('');
+        setIsMagnum(false);
         setPhoto(null);
         setBarrils(0);
         if (index !== null) {
@@ -156,6 +164,10 @@ function App() {
             setCaixes(entry.boxes || 0);
             setBarrils(entry.barrels || 0);
             setAnyada(entry.year || '');
+            setIsNoEtiquetat(!!entry.isNoEtiquetat);
+            setIsGranel(!!entry.isGranel);
+            setGranelLitres(entry.granelLitres || '');
+            setIsMagnum(!!entry.isMagnum);
             setEditIndex(index);
         } else {
             setAmpolles(0);
@@ -188,15 +200,19 @@ function App() {
             article: selectedArticle,
             year: anyada,
             location: ubicacio,
-            bottles: parseInt(ampolles || 0),
-            boxes: parseInt(caixes || 0),
-            barrels: parseInt(barrils || 0),
-            totalBottles: total,
-            incidencia: isIncidencia || barrils > 0,
-            incidenciaText: finalIncidenciaText,
+            bottles: isGranel ? 0 : parseInt(ampolles || 0),
+            boxes: isGranel ? 0 : parseInt(caixes || 0),
+            barrels: isGranel ? 0 : parseInt(barrils || 0),
+            totalBottles: isGranel ? 0 : total,
+            isNoEtiquetat,
+            isGranel,
+            granelLitres: isGranel ? parseFloat(granelLitres || 0) : 0,
+            isMagnum,
+            incidencia: isIncidencia || barrils > 0 || isMagnum,
+            incidenciaText: isMagnum ? 'MAGNUM' : finalIncidenciaText,
             image: photo,
             locationSource: 'App Mobil v3',
-            sheet: targetSheet // Aquesta és la clau que rep el GAS
+            sheet: targetSheet
         };
 
         const pending = JSON.parse(localStorage.getItem('inventory_pending') || '[]');
@@ -350,6 +366,10 @@ function App() {
                     barrils={barrils} setBarrils={setBarrils}
                     isIncidencia={isIncidencia} setIsIncidencia={setIsIncidencia}
                     incidenciaText={incidenciaText} setIncidenciaText={setIncidenciaText}
+                    isNoEtiquetat={isNoEtiquetat} setIsNoEtiquetat={setIsNoEtiquetat}
+                    isGranel={isGranel} setIsGranel={setIsGranel}
+                    granelLitres={granelLitres} setGranelLitres={setGranelLitres}
+                    isMagnum={isMagnum} setIsMagnum={setIsMagnum}
                     photo={photo} setPhoto={setPhoto}
                     onPhotoCapture={(e) => {
                         const file = e.target.files[0];

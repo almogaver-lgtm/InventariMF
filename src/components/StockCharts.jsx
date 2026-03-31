@@ -5,6 +5,7 @@ import { ArrowLeft } from 'lucide-react';
 const StockCharts = ({
     stockLevels,
     section = 'vins',
+    vinsSubView,
     activePie,
     setActivePie,
     chartColors,
@@ -67,6 +68,12 @@ const StockCharts = ({
     const displayItems = getDisplayItems();
     const currentMax = displayItems.length > 0 ? Math.max(...displayItems.map(it => it.total), 1) : 1;
 
+    const getUnit = (itemName) => {
+        if (section === 'material') return 'u.';
+        if (itemName.includes('(A GRANEL)')) return 'L.';
+        return 'amp.';
+    };
+
     // --- DONUT CHART LOGIC (FOR VINE) ---
     let currentAngle = 0;
     const slices = sortedLevels.map(([name, data], i) => {
@@ -89,7 +96,7 @@ const StockCharts = ({
                 <Grid item xs={12} md={5}>
                     <Card variant="outlined" sx={{ p: 4, height: '100%', borderRadius: 6, display: 'flex', flexDirection: 'column', minHeight: 450 }}>
                         <Typography variant="overline" sx={{ mb: 4, display: 'block', fontWeight: 900, letterSpacing: 1.5, textAlign: 'center' }}>
-                            {section === 'material' ? 'COMPARATIVA CATEGORIES' : "DISTRIBUCIÓ D'ESTOC"}
+                            {section === 'material' ? 'COMPARATIVA CATEGORIES' : (vinsSubView === 'secundari' ? "DISTRIBUCIÓ ESTOC SECUNDARI" : "DISTRIBUCIÓ D'ESTOC")}
                         </Typography>
 
                         {section === 'material' ? (
@@ -179,9 +186,9 @@ const StockCharts = ({
                                 }}>
                                     {!activePie ? (
                                         <>
-                                            <Typography variant="caption" sx={{ fontWeight: 900, color: 'text.secondary', fontSize: '0.65rem' }}>TOTAL VINS</Typography>
+                                            <Typography variant="caption" sx={{ fontWeight: 900, color: 'text.secondary', fontSize: '0.65rem' }}>TOTAL {vinsSubView === 'secundari' ? 'SECUNDARI' : 'VINS'}</Typography>
                                             <Typography variant="h4" sx={{ fontWeight: 900, color: 'primary.main' }}>{grandTotal}</Typography>
-                                            <Typography variant="caption" sx={{ fontWeight: 800 }}>unitats</Typography>
+                                            <Typography variant="caption" sx={{ fontWeight: 800 }}>{vinsSubView === 'secundari' ? 'unitats/L.' : 'unitats'}</Typography>
                                         </>
                                     ) : (
                                         <>
@@ -228,7 +235,7 @@ const StockCharts = ({
                                     <Typography variant="body1" sx={{ fontWeight: 800, fontSize: '1.1rem' }}>{item.name}</Typography>
                                     <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
                                         <Typography variant="body1" sx={{ fontWeight: 900, color: 'primary.main', fontSize: '1.2rem' }}>{item.total}</Typography>
-                                        <Typography variant="caption" sx={{ fontWeight: 700, opacity: 0.7 }}>u.</Typography>
+                                        <Typography variant="caption" sx={{ fontWeight: 700, opacity: 0.7 }}>{getUnit(item.name)}</Typography>
                                     </Box>
                                 </Box>
                                 <LinearProgress

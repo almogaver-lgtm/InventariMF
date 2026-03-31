@@ -1,6 +1,6 @@
 export const INITIAL_ARTICLES = [
     'PICAPOLL', 'GX BLANCA', 'ROSAT', 'GX NEGRA', 'MERLOT',
-    'PERAFITA NEGRA', 'MF', 'CADAC', 'VERMUT', 'MISTELLA',
+    'PERAFITA NEGRA', 'MF', 'CADAC', 'PICAPOLL BARRICA', 'VERMUT', 'MISTELLA',
     'GX DOLÇA', 'CERVESA GRAN', 'OLI', 'CERVESA PETITA',
     'LIMONCELLO', 'GINEBRA', 'CAVA BLANC', 'CAVA ROSAT', 'CAVA PICAPOLL'
 ];
@@ -8,11 +8,11 @@ export const INITIAL_ARTICLES = [
 export const MATERIA_SECA = {
     TAPS: ['COLAMATS', 'FLOR', 'DE FUSTA'],
     AMPOLLES: ['BLANQUES', 'VERDES', 'CADAC', 'DOLÇOS', 'OLI', 'MAGNUM'],
-    CAPSULES: ['PICAPOLL', 'ROSAT', 'GX NEGRA', 'PERAFITA', 'CADAC', 'MISTEL·LA', 'GX DOLÇA', 'CAVA', 'CAVA PICAPOLL', 'ANÒNIMES'],
-    CAIXES: ['PICAPOLL', 'GX BLANCA', 'ROSAT', 'GX NEGRA', 'MERLOT', 'PERAFITA', 'MF', 'CADAC', 'CADAC MAGNUM', 'DOLÇOS'],
+    CAPSULES: ['PICAPOLL', 'ROSAT', 'GX NEGRA', 'PERAFITA', 'CADAC', 'PICAPOLL BARRICA', 'MISTEL·LA', 'GX DOLÇA', 'CAVA', 'CAVA PICAPOLL', 'ANÒNIMES'],
+    CAIXES: ['PICAPOLL', 'GX BLANCA', 'ROSAT', 'GX NEGRA', 'MERLOT', 'PERAFITA', 'MF', 'CADAC', 'CADAC MAGNUM', 'PICAPOLL BARRICA', 'PICAPOLL BARRICA MAGNUM', 'DOLÇOS'],
     ETIQUETES: [
         'PICAPOLL', 'GX BLANCA', 'ROSAT', 'GX NEGRA', 'MERLOT',
-        'PERAFITA NEGRA', 'MF', 'CADAC', 'VERMUT', 'MISTELLA',
+        'PERAFITA NEGRA', 'MF', 'CADAC', 'PICAPOLL BARRICA', 'VERMUT', 'MISTELLA',
         'GX DOLÇA', 'CERVESA GRAN', 'OLI', 'CERVESA PETITA',
         'LIMONCELLO', 'GINEBRA', 'CAVA BLANC', 'CAVA ROSAT', 'CAVA PICAPOLL'
     ]
@@ -20,7 +20,7 @@ export const MATERIA_SECA = {
 
 export const INITIAL_USUARIS = ['David', 'Djilali', 'Clara'];
 export const UBICACIONS = ['Pla', 'Celler', 'Botiga'];
-export const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxn8TehzTyi1uj99Qe_RGB1k3jB7ZuDVYYQQqDOGyOde4HbDda4gNJZgPB0t-RkO69HbQ/exec';
+export const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw-s4eucD1yNyAA_hmiG1MB4Ry0ZrB8rZSD-uzr_BeIIML-GVNJeiGg_YiFG-zBlmn6Bg/exec';
 
 export const CHART_COLORS = [
     '#722f37', '#b91c1c', '#dc2626', '#ef4444', '#f87171',
